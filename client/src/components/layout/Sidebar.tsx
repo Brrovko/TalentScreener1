@@ -10,6 +10,28 @@ const Sidebar = () => {
     return location.startsWith(path);
   };
 
+  // Function to create navigation item with consistent styling
+  const NavItem = ({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) => {
+    const active = to === "/dashboard" 
+      ? isActive("/dashboard") || isActive("/") 
+      : isActive(to);
+    
+    return (
+      <li>
+        <Link href={to}>
+          <div 
+            className={`flex items-center px-4 py-3 text-neutral-600 hover:text-primary-600 hover:bg-primary-50 transition-colors cursor-pointer ${
+              active ? "bg-primary-50 text-primary-600 font-medium" : ""
+            }`}
+          >
+            {icon}
+            {label}
+          </div>
+        </Link>
+      </li>
+    );
+  };
+
   return (
     <aside className="hidden md:flex flex-col w-64 border-r border-neutral-200 bg-white">
       <div className="p-4 border-b border-neutral-200">
@@ -17,56 +39,26 @@ const Sidebar = () => {
       </div>
       <nav className="flex-1 overflow-y-auto py-4">
         <ul>
-          <li>
-            <Link href="/dashboard">
-              <a
-                className={`flex items-center px-4 py-3 text-neutral-600 hover:text-primary-600 hover:bg-primary-50 transition-colors ${
-                  isActive("/dashboard") || isActive("/")
-                    ? "bg-primary-50 text-primary-600 font-medium"
-                    : ""
-                }`}
-              >
-                <LayoutGrid className="h-5 w-5 mr-3" />
-                Dashboard
-              </a>
-            </Link>
-          </li>
-          <li>
-            <Link href="/tests">
-              <a
-                className={`flex items-center px-4 py-3 text-neutral-600 hover:text-primary-600 hover:bg-primary-50 transition-colors ${
-                  isActive("/tests") ? "bg-primary-50 text-primary-600 font-medium" : ""
-                }`}
-              >
-                <ClipboardList className="h-5 w-5 mr-3" />
-                Tests
-              </a>
-            </Link>
-          </li>
-          <li>
-            <Link href="/candidates">
-              <a
-                className={`flex items-center px-4 py-3 text-neutral-600 hover:text-primary-600 hover:bg-primary-50 transition-colors ${
-                  isActive("/candidates") ? "bg-primary-50 text-primary-600 font-medium" : ""
-                }`}
-              >
-                <Users className="h-5 w-5 mr-3" />
-                Candidates
-              </a>
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings">
-              <a
-                className={`flex items-center px-4 py-3 text-neutral-600 hover:text-primary-600 hover:bg-primary-50 transition-colors ${
-                  isActive("/settings") ? "bg-primary-50 text-primary-600 font-medium" : ""
-                }`}
-              >
-                <Settings className="h-5 w-5 mr-3" />
-                Settings
-              </a>
-            </Link>
-          </li>
+          <NavItem 
+            to="/dashboard" 
+            icon={<LayoutGrid className="h-5 w-5 mr-3" />} 
+            label="Dashboard" 
+          />
+          <NavItem 
+            to="/tests" 
+            icon={<ClipboardList className="h-5 w-5 mr-3" />} 
+            label="Tests" 
+          />
+          <NavItem 
+            to="/candidates" 
+            icon={<Users className="h-5 w-5 mr-3" />} 
+            label="Candidates" 
+          />
+          <NavItem 
+            to="/settings" 
+            icon={<Settings className="h-5 w-5 mr-3" />} 
+            label="Settings" 
+          />
         </ul>
       </nav>
       <div className="p-4 border-t border-neutral-200">
