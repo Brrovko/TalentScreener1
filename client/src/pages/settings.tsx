@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -66,6 +67,7 @@ type SecurityFormValues = z.infer<typeof securityFormSchema>;
 type NotificationsFormValues = z.infer<typeof notificationsFormSchema>;
 
 const Settings = () => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   
   // Profile form
@@ -123,13 +125,13 @@ const Settings = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-neutral-800 mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold text-neutral-800 mb-6">{t('common.settings')}</h1>
 
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-3 mb-8">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="profile">{t('settings.profile')}</TabsTrigger>
+          <TabsTrigger value="security">{t('settings.security')}</TabsTrigger>
+          <TabsTrigger value="notifications">{t('settings.notifications')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="profile">

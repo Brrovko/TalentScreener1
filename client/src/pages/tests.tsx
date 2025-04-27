@@ -5,8 +5,10 @@ import TestsTable from "@/components/tests/TestsTable";
 import CreateTestModal from "@/components/tests/CreateTestModal";
 import SearchInput from "@/components/ui/SearchInput";
 import { Test } from "@shared/schema";
+import { useTranslation } from "react-i18next";
 
 const Tests = () => {
+  const { t } = useTranslation();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTest, setEditingTest] = useState<Test | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,10 +26,10 @@ const Tests = () => {
   return (
     <div className="p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold text-neutral-800">Tests</h1>
+        <h1 className="text-2xl font-bold text-neutral-800">{t('common.tests')}</h1>
         <Button onClick={() => setIsCreateModalOpen(true)}>
           <Plus className="h-5 w-5 mr-2" />
-          Create Test
+          {t('tests.create_test')}
         </Button>
       </div>
 
@@ -35,7 +37,7 @@ const Tests = () => {
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Search tests by name or category"
+          placeholder={t('tests.search_placeholder', 'Search tests by name or category')}
           className="max-w-md"
         />
       </div>

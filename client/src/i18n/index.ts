@@ -82,7 +82,8 @@ const ruTranslation = {
     manage_questions: "Управление вопросами",
     add_question: "Добавить вопрос",
     edit_question: "Редактировать вопрос",
-    no_questions: "Нет вопросов. Добавьте вопросы для этого теста."
+    no_questions: "Нет вопросов. Добавьте вопросы для этого теста.",
+    search_placeholder: "Поиск тестов по названию или категории"
   },
   question_types: {
     single_choice: "Один вариант",
@@ -186,7 +187,8 @@ const enTranslation = {
     manage_questions: "Manage Questions",
     add_question: "Add Question",
     edit_question: "Edit Question",
-    no_questions: "No questions. Add questions for this test."
+    no_questions: "No questions. Add questions for this test.",
+    search_placeholder: "Search tests by name or category"
   },
   question_types: {
     single_choice: "Single Choice",
