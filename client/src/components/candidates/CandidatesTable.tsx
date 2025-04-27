@@ -269,14 +269,7 @@ const CandidatesTable = () => {
                         <Badge variant="outline">No tests</Badge>
                       ) : (
                         <div className="flex flex-col space-y-1 min-w-[220px]">
-                          <div className="flex items-center justify-between">
-                            <Badge variant={getStatusBadgeVariant(testInfo.status)} className="mb-1">
-                              {testInfo.status}
-                            </Badge>
-                            <span className="text-xs text-gray-500">
-                              {testInfo.sessions.length} test{testInfo.sessions.length !== 1 ? 's' : ''}
-                            </span>
-                          </div>
+                          
                           
                           <div className="flex flex-col space-y-1 bg-gray-50 p-2 rounded-md text-sm">
                             {testInfo.sessions.map((session: any) => (
