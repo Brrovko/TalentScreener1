@@ -4,9 +4,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TestForm from "./TestForm";
+import QuestionsManager from "./QuestionsManager";
 import { Test } from "@shared/schema";
 
 interface CreateTestModalProps {
@@ -23,7 +25,14 @@ const CreateTestModal = ({ isOpen, onClose, editingTest }: CreateTestModalProps)
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex justify-between items-center">
-          <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
+          <div>
+            <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
+            {isEditing && (
+              <DialogDescription className="mt-1">
+                Edit test details and manage questions
+              </DialogDescription>
+            )}
+          </div>
           <button 
             onClick={onClose} 
             className="text-neutral-500 hover:text-neutral-700"
@@ -42,14 +51,7 @@ const CreateTestModal = ({ isOpen, onClose, editingTest }: CreateTestModalProps)
               <TestForm test={editingTest} onComplete={onClose} />
             </TabsContent>
             <TabsContent value="questions">
-              {/* Question management would go here */}
-              <div className="p-4 border rounded-md">
-                <p className="text-gray-500 text-center py-6">
-                  Question management interface would be implemented here.
-                  <br />
-                  It would include adding/editing questions, options, and correct answers.
-                </p>
-              </div>
+              <QuestionsManager test={editingTest} />
             </TabsContent>
           </Tabs>
         ) : (
