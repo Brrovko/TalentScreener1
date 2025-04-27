@@ -25,6 +25,8 @@ jobs:
 
             if [ ! -d "${{ secrets.SSH_PROJECT_PATH }}/.git" ]; then
               echo "Проект не найден. Клонируем репозиторий..."
+              echo "Очистим директорию перед клонированием"
+              rm -rf ${{ secrets.SSH_PROJECT_PATH }}/* || true
               git clone https://github.com/${{ github.repository }} ${{ secrets.SSH_PROJECT_PATH }}
               cd ${{ secrets.SSH_PROJECT_PATH }}
               npm install
