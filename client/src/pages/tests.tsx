@@ -3,11 +3,13 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TestsTable from "@/components/tests/TestsTable";
 import CreateTestModal from "@/components/tests/CreateTestModal";
+import SearchInput from "@/components/ui/SearchInput";
 import { Test } from "@shared/schema";
 
 const Tests = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTest, setEditingTest] = useState<Test | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleEditTest = (test: Test) => {
     setEditingTest(test);
@@ -27,6 +29,15 @@ const Tests = () => {
           <Plus className="h-5 w-5 mr-2" />
           Create Test
         </Button>
+      </div>
+
+      <div className="mb-6">
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search tests by name or category"
+          className="max-w-md"
+        />
       </div>
 
       <TestsTable onEdit={handleEditTest} />
