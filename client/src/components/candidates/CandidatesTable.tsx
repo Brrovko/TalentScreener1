@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Candidate } from "@shared/schema";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, CheckCircle, XCircle } from "lucide-react";
+import { FileSpreadsheet, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import AssignTestModal from "./AssignTestModal";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -21,19 +21,22 @@ const CandidatesTable = () => {
   const [filter, setFilter] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState(new Date());
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const queryClient = useQueryClient();
 
+  // Получаем данные о кандидатах с автообновлением
   const { data: candidates = [], isLoading } = useQuery<Candidate[]>({
     queryKey: ["/api/candidates"],
+    refetchInterval: autoRefresh ? 5000 : false, // Обновление каждые 5 секунд если включено
   });
 
-  // Get test sessions for each candidate
+  // Получаем данные о сессиях для каждого кандидата с автообновлением
   const { data: allCandidatesSessions = {} } = useQuery<Record<number, any[]>>({
     queryKey: ["/api/candidates/sessions"],
     queryFn: async () => {
-      // Создаем объект, где ключ - это ID кандидата, а значение - массив его сессий
       const sessionsData: Record<number, any[]> = {};
       
-      // Получаем сессии для каждого кандидата
       await Promise.all(
         candidates.map(async (candidate) => {
           try {
@@ -49,15 +52,32 @@ const CandidatesTable = () => {
         })
       );
       
+      setLastRefreshed(new Date());
       return sessionsData;
     },
     enabled: candidates.length > 0,
+    refetchInterval: autoRefresh ? 5000 : false, // Обновление каждые 5 секунд если включено
+    refetchOnWindowFocus: true,
   });
   
-  // Получаем данные о тестах для их имен
+  // Получаем данные о тестах для их имен с автообновлением
   const { data: tests = [] } = useQuery<any[]>({
     queryKey: ["/api/tests"],
+    refetchInterval: autoRefresh ? 5000 : false, // Обновление каждые 5 секунд если включено
   });
+  
+  // Функция для ручного обновления данных
+  const refreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/candidates"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/candidates/sessions"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
+    setLastRefreshed(new Date());
+  };
+  
+  // Обработчик для включения/выключения автообновления
+  const toggleAutoRefresh = () => {
+    setAutoRefresh(!autoRefresh);
+  };
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter((candidate) => {
@@ -169,7 +189,7 @@ const CandidatesTable = () => {
   return (
     <>
       <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-        <div className="px-4 py-3">
+        <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <input
             type="text"
             placeholder="Filter candidates..."
@@ -177,6 +197,29 @@ const CandidatesTable = () => {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
+          
+          <div className="flex items-center space-x-3">
+            <div className="text-xs text-gray-500">
+              Last refreshed: {formatDistanceToNow(lastRefreshed, { addSuffix: true })}
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center h-8" 
+              onClick={refreshData}
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              Refresh
+            </Button>
+            <Button
+              variant={autoRefresh ? "default" : "secondary"}
+              size="sm"
+              className="h-8"
+              onClick={toggleAutoRefresh}
+            >
+              {autoRefresh ? "Auto-refresh: On" : "Auto-refresh: Off"}
+            </Button>
+          </div>
         </div>
         <Table>
           <TableHeader>
@@ -225,58 +268,44 @@ const CandidatesTable = () => {
                       {!testInfo.hasTests ? (
                         <Badge variant="outline">No tests</Badge>
                       ) : (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex flex-col gap-1">
-                                <Badge variant={getStatusBadgeVariant(testInfo.status)}>
-                                  {testInfo.status}
-                                </Badge>
-                                <div className="text-xs text-gray-500">
-                                  {testInfo.sessions.length} test{testInfo.sessions.length !== 1 ? 's' : ''}
-                                </div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-sm p-0">
-                              <div className="p-2">
-                                <div className="font-semibold mb-2">Assigned Tests:</div>
-                                <div className="space-y-2">
-                                  {testInfo.sessions.map((session: any) => (
-                                    <div key={session.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md">
-                                      <div>
-                                        <div className="font-medium">{session.testName}</div>
-                                        <div className="text-sm text-gray-500 flex items-center gap-1">
-                                          <span>Status:</span> 
-                                          <Badge variant={session.status === "completed" 
-                                            ? (session.passed ? "success" : "destructive") 
-                                            : getStatusBadgeVariant(session.status)}>
-                                            {session.status === "completed" 
-                                              ? (session.passed ? "Pass" : "Fail") 
-                                              : session.status}
-                                          </Badge>
-                                        </div>
-                                        {session.status === "completed" && (
-                                          <div className="text-xs text-gray-500 mt-1">
-                                            Score: {session.percentScore || 0}% (Passing: {session.testPassingScore}%)
-                                          </div>
-                                        )}
-                                      </div>
-                                      {session.status === "completed" && (
-                                        <div>
-                                          {session.passed ? (
-                                            <CheckCircle className="h-5 w-5 text-green-500" />
-                                          ) : (
-                                            <XCircle className="h-5 w-5 text-red-500" />
-                                          )}
-                                        </div>
+                        <div className="flex flex-col space-y-1 min-w-[220px]">
+                          <div className="flex items-center justify-between">
+                            <Badge variant={getStatusBadgeVariant(testInfo.status)} className="mb-1">
+                              {testInfo.status}
+                            </Badge>
+                            <span className="text-xs text-gray-500">
+                              {testInfo.sessions.length} test{testInfo.sessions.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-col space-y-1 bg-gray-50 p-2 rounded-md text-sm">
+                            {testInfo.sessions.map((session: any) => (
+                              <div key={session.id} className="flex items-center justify-between">
+                                <div className="truncate max-w-[120px]">{session.testName}</div>
+                                <div className="flex items-center">
+                                  <Badge variant={session.status === "completed" 
+                                    ? (session.passed ? "success" : "destructive") 
+                                    : getStatusBadgeVariant(session.status)}
+                                    className="text-xs px-1.5 py-0"
+                                  >
+                                    {session.status === "completed" 
+                                      ? (session.passed ? "Pass" : "Fail") 
+                                      : session.status}
+                                  </Badge>
+                                  {session.status === "completed" && (
+                                    <span className="ml-1">
+                                      {session.passed ? (
+                                        <CheckCircle className="h-3 w-3 text-green-500" />
+                                      ) : (
+                                        <XCircle className="h-3 w-3 text-red-500" />
                                       )}
-                                    </div>
-                                  ))}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell className="text-right">

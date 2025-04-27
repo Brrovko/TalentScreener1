@@ -71,10 +71,11 @@ const AssignTestModal = ({ isOpen, onClose, candidate }: AssignTestModalProps) =
         description: "You can now share the link with the candidate",
       });
       
-      // Refetch sessions data
+      // Invalidate all relevant queries to update the UI
+      queryClient.invalidateQueries({ queryKey: ["/api/candidates/sessions"] });
       if (candidate) {
         queryClient.invalidateQueries({
-          queryKey: ["/api/candidates", candidate.id, "sessions"],
+          queryKey: [`/api/candidates/${candidate.id}/sessions`],
         });
       }
     },
