@@ -11,6 +11,9 @@ import CandidateDetails from "@/pages/candidate-details";
 import Settings from "@/pages/settings";
 import Sidebar from "@/components/layout/Sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "./lib/protected-route";
+import AuthPage from "@/pages/auth-page";
 
 // Importing test-taking component
 import TakeTestPage from "./pages/take-test";
@@ -18,9 +21,19 @@ import TakeTestPage from "./pages/take-test";
 function Router() {
   const [location] = useLocation();
   const isTakeTestRoute = location.startsWith("/take-test");
+  const isAuthRoute = location === "/auth";
   const isMobile = useIsMobile();
 
-  // Only show the sidebar for admin pages, not for test-taking pages
+  // Отображение страницы авторизации без сайдбара
+  if (isAuthRoute) {
+    return (
+      <Switch>
+        <Route path="/auth" component={AuthPage} />
+      </Switch>
+    );
+  }
+
+  // Отображение страницы прохождения теста без сайдбара (для кандидатов)
   if (isTakeTestRoute) {
     return (
       <main className="min-h-screen overflow-y-auto bg-white">
@@ -32,6 +45,7 @@ function Router() {
     );
   }
 
+  // Основной интерфейс для авторизованных пользователей
   return (
     <div className="flex flex-col md:flex-row min-h-screen overflow-hidden bg-neutral-50">
       {/* Sidebar will handle its own visibility on mobile/desktop */}
@@ -41,12 +55,28 @@ function Router() {
       <main className="flex-1 overflow-y-auto pt-0 md:pt-4 pb-20 md:pb-4">
         <div className={`container mx-auto px-4 ${isMobile ? 'max-w-full' : 'max-w-6xl'}`}>
           <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/dashboard" component={Dashboard} />
-            <Route path="/tests" component={Tests} />
-            <Route path="/candidates" component={Candidates} />
-            <Route path="/candidates/:id" component={CandidateDetails} />
-            <Route path="/settings" component={Settings} />
+            <ProtectedRoute path="/" component={Dashboard} />
+            <ProtectedRoute path="/dashboard" component={Dashboard} />
+            <ProtectedRoute 
+              path="/tests" 
+              component={Tests} 
+              requiredRoles={["admin", "recruiter", "interviewer"]} 
+            />
+            <ProtectedRoute 
+              path="/candidates" 
+              component={Candidates} 
+              requiredRoles={["admin", "recruiter"]} 
+            />
+            <ProtectedRoute 
+              path="/candidates/:id" 
+              component={CandidateDetails}
+              requiredRoles={["admin", "recruiter", "interviewer"]} 
+            />
+            <ProtectedRoute 
+              path="/settings" 
+              component={Settings} 
+              requiredRoles={["admin"]} 
+            />
             <Route component={NotFound} />
           </Switch>
         </div>
@@ -58,10 +88,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

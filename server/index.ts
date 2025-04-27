@@ -37,6 +37,28 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize admin user if not exists
+  try {
+    const { storage } = await import("./storage");
+    const { hashPassword } = await import("./auth");
+    
+    const adminUser = await storage.getUserByUsername("admin");
+    if (!adminUser) {
+      console.log("Creating default admin user...");
+      await storage.createUser({
+        username: "admin",
+        password: await hashPassword("admin123"),
+        fullName: "System Administrator",
+        role: "admin",
+        email: "admin@example.com",
+        active: true
+      });
+      console.log("Default admin user created successfully");
+    }
+  } catch (error) {
+    console.error("Error creating admin user:", error);
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
