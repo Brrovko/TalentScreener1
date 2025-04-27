@@ -20,10 +20,13 @@ interface TestSession {
   startedAt: string | null;
   completedAt: string | null;
   score: number | null;
+  percentScore?: number | null;
+  passed?: boolean | null;
   expiresAt: string;
   test?: {
     name: string;
     category: string;
+    passingScore?: number;
   };
 }
 
@@ -90,6 +93,12 @@ const CandidateDetails = () => {
       default:
         return "outline";
     }
+  };
+  
+  // Helper function to get result badge variant (Pass/Fail)
+  const getResultBadgeVariant = (passed: boolean | null | undefined): "default" | "secondary" | "outline" | "destructive" | "success" => {
+    if (passed === undefined || passed === null) return "outline";
+    return passed ? "success" : "destructive";
   };
 
   // Handle manual refresh of sessions
@@ -308,8 +317,19 @@ const CandidateDetails = () => {
                           {session.test?.category || "Uncategorized"}
                         </div>
                         
-                        <div className="flex items-center space-x-2 mt-2">
+                        <div className="flex items-center space-x-4 mt-2">
                           <div className="text-lg font-bold">{session.score || 0} pts</div>
+                          {session.percentScore !== undefined && (
+                            <div className="text-sm text-gray-500">
+                              {session.percentScore}% score 
+                              {session.test?.passingScore && ` (Passing: ${session.test.passingScore}%)`}
+                            </div>
+                          )}
+                          {session.passed !== undefined && (
+                            <Badge variant={getResultBadgeVariant(session.passed)}>
+                              {session.passed ? "Pass" : "Fail"}
+                            </Badge>
+                          )}
                         </div>
                         
                         <div className="flex justify-between items-center mt-4 text-sm">
@@ -351,8 +371,19 @@ const CandidateDetails = () => {
                       </div>
                       
                       {session.status === "completed" && (
-                        <div className="flex items-center space-x-2 mt-2">
+                        <div className="flex items-center space-x-4 mt-2">
                           <div className="text-lg font-bold">{session.score || 0} pts</div>
+                          {session.percentScore !== undefined && (
+                            <div className="text-sm text-gray-500">
+                              {session.percentScore}% score 
+                              {session.test?.passingScore && ` (Passing: ${session.test.passingScore}%)`}
+                            </div>
+                          )}
+                          {session.passed !== undefined && (
+                            <Badge variant={getResultBadgeVariant(session.passed)}>
+                              {session.passed ? "Pass" : "Fail"}
+                            </Badge>
+                          )}
                         </div>
                       )}
                       

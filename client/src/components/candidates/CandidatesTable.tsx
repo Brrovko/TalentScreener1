@@ -211,7 +211,7 @@ const CandidatesTable = () => {
                               <div className="p-2">
                                 <div className="font-semibold mb-2">Assigned Tests:</div>
                                 <div className="space-y-2">
-                                  {testInfo.sessions.map((session) => (
+                                  {testInfo.sessions.map((session: any) => (
                                     <div key={session.id} className="flex items-center justify-between">
                                       <div>
                                         <div className="font-medium">{session.testName}</div>
