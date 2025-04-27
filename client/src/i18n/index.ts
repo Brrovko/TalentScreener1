@@ -25,13 +25,21 @@ const ruTranslation = {
   },
   dashboard: {
     recent_activity: "Недавняя активность",
+    latest_activity: "Последние действия кандидатов",
+    no_activity: "Нет недавней активности",
     statistics: "Статистика",
     total_tests: "Всего тестов",
     active_tests: "Активные тесты",
     total_candidates: "Всего кандидатов",
     pending_sessions: "Ожидающие сессии",
     completed_sessions: "Завершенные сессии",
-    view_all: "Посмотреть все"
+    view_all: "Посмотреть все",
+    quick_actions: "Быстрые действия",
+    create_test_description: "Добавить вопросы, установить ограничения по времени и многое другое",
+    view_candidates: "Просмотр кандидатов",
+    view_candidates_description: "Просмотр прогресса и результатов кандидатов",
+    configure_settings: "Настройки",
+    configure_settings_description: "Управление настройками учетной записи"
   },
   candidates: {
     name: "Имя",
@@ -121,13 +129,21 @@ const enTranslation = {
   },
   dashboard: {
     recent_activity: "Recent Activity",
+    latest_activity: "Latest candidate test activity",
+    no_activity: "No recent activity",
     statistics: "Statistics",
     total_tests: "Total Tests",
     active_tests: "Active Tests",
     total_candidates: "Total Candidates",
     pending_sessions: "Pending Sessions",
     completed_sessions: "Completed Sessions",
-    view_all: "View All"
+    view_all: "View All",
+    quick_actions: "Quick Actions",
+    create_test_description: "Add questions, set time limits, and more",
+    view_candidates: "View candidates",
+    view_candidates_description: "Review candidate progress and results",
+    configure_settings: "Configure settings",
+    configure_settings_description: "Manage your account preferences"
   },
   candidates: {
     name: "Name",

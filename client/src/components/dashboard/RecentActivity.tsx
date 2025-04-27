@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 interface Activity {
   sessionId: number;
@@ -18,16 +19,17 @@ interface Activity {
 }
 
 const RecentActivity = () => {
+  const { t } = useTranslation();
   const { data: activities = [], isLoading } = useQuery<Activity[]>({
     queryKey: ["/api/recent-activity"],
   });
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: string): "success" | "secondary" | "default" | "destructive" | "outline" => {
     switch (status) {
       case "completed":
         return "success";
       case "in_progress":
-        return "warning";
+        return "secondary"; // раньше было "warning", но такого варианта нет
       default:
         return "secondary";
     }
@@ -36,11 +38,11 @@ const RecentActivity = () => {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "completed":
-        return "Completed";
+        return t('candidates.completed');
       case "in_progress":
-        return "In progress";
+        return t('candidates.in_progress');
       case "pending":
-        return "Pending";
+        return t('candidates.pending');
       default:
         return status;
     }
@@ -49,15 +51,15 @@ const RecentActivity = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
-        <CardDescription>Latest candidate test activity</CardDescription>
+        <CardTitle>{t('dashboard.recent_activity')}</CardTitle>
+        <CardDescription>{t('dashboard.latest_activity', 'Latest candidate test activity')}</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-6">Loading activity...</div>
+          <div className="flex justify-center py-6">{t('common.loading')}</div>
         ) : activities.length === 0 ? (
           <div className="text-center py-6 text-neutral-500">
-            No recent activity
+            {t('dashboard.no_activity', 'No recent activity')}
           </div>
         ) : (
           <div className="space-y-4">
