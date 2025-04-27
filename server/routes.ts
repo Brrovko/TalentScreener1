@@ -249,6 +249,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint to get all test sessions
+  app.get("/api/tests/sessions", async (req: Request, res: Response) => {
+    try {
+      // Get sessions for all tests
+      const sessions = [];
+      const tests = await storage.getAllTests();
+      
+      for (const test of tests) {
+        const testSessions = await storage.getTestSessionsByTestId(test.id);
+        sessions.push(...testSessions);
+      }
+      
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch test sessions" });
+    }
+  });
+
   app.post("/api/sessions", async (req: Request, res: Response) => {
     try {
       const sessionData = {
@@ -396,10 +414,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isCorrect = answer.answer === question.correctAnswer;
         } else if (question.type === "checkbox") {
           // For checkbox, both arrays need to have the same values regardless of order
-          const answerSet = new Set(answer.answer);
-          const correctSet = new Set(question.correctAnswer);
+          // Обеспечиваем корректность типов для Set
+          const answerArray = Array.isArray(answer.answer) ? answer.answer : [];
+          const correctArray = Array.isArray(question.correctAnswer) ? question.correctAnswer : [];
+          
+          const answerSet = new Set(answerArray);
+          const correctSet = new Set(correctArray);
+          
           isCorrect = answerSet.size === correctSet.size && 
-                      [...answerSet].every(value => correctSet.has(value));
+                      Array.from(answerSet).every(value => correctSet.has(value));
         } else if (question.type === "text" || question.type === "code") {
           // For text/code questions, compare with expected answer (case insensitive for text)
           if (question.type === "text") {

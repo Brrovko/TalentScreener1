@@ -25,7 +25,7 @@ function Router() {
     return (
       <main className="h-screen overflow-y-auto bg-white">
         <Switch>
-          <Route path="/take-test/:token" component={TakeTest} />
+          <Route path="/take-test/:token" component={TakeTestPage} />
           <Route component={NotFound} />
         </Switch>
       </main>
