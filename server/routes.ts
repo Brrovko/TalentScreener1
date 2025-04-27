@@ -289,6 +289,193 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test session by token endpoint - for candidates to take tests
+  app.get("/api/sessions/token/:token", async (req: Request, res: Response) => {
+    try {
+      const token = req.params.token;
+      const session = await storage.getTestSessionByToken(token);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Session not found or expired" });
+      }
+      
+      // Check if session is expired
+      if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+        return res.status(403).json({ message: "Test session has expired" });
+      }
+      
+      // Get the test details
+      const test = await storage.getTest(session.testId);
+      if (!test) {
+        return res.status(404).json({ message: "Test not found" });
+      }
+      
+      // Get the candidate details
+      const candidate = await storage.getCandidate(session.candidateId);
+      if (!candidate) {
+        return res.status(404).json({ message: "Candidate not found" });
+      }
+      
+      // Get the questions - don't include correct answers
+      const questionsWithAnswers = await storage.getQuestionsByTestId(test.id);
+      const questions = questionsWithAnswers.map(q => ({
+        id: q.id,
+        content: q.content,
+        type: q.type,
+        options: q.options,
+        points: q.points,
+        order: q.order
+      }));
+      
+      res.json({
+        session,
+        test: {
+          id: test.id,
+          name: test.name,
+          description: test.description,
+          category: test.category,
+          timeLimit: test.timeLimit
+        },
+        candidate: {
+          id: candidate.id,
+          name: candidate.name
+        },
+        questions
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch session" });
+    }
+  });
+  
+  // Submit answers
+  app.post("/api/sessions/:token/submit", async (req: Request, res: Response) => {
+    try {
+      const token = req.params.token;
+      const { answers } = req.body;
+      
+      // Validate answers format
+      if (!Array.isArray(answers)) {
+        return res.status(400).json({ message: "Answers must be an array" });
+      }
+      
+      const session = await storage.getTestSessionByToken(token);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Check if session is expired
+      if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+        return res.status(403).json({ message: "Test session has expired" });
+      }
+      
+      // Check if session is already completed
+      if (session.status === "completed") {
+        return res.status(400).json({ message: "Test has already been completed" });
+      }
+      
+      // Get questions to validate answers and calculate score
+      const questions = await storage.getQuestionsByTestId(session.testId);
+      
+      let totalScore = 0;
+      const processedAnswers = [];
+      
+      // Process each answer
+      for (const answer of answers) {
+        const question = questions.find(q => q.id === answer.questionId);
+        
+        if (!question) {
+          return res.status(400).json({ 
+            message: `Question with ID ${answer.questionId} not found` 
+          });
+        }
+        
+        // Check if the answer is correct and calculate points
+        let isCorrect = false;
+        
+        if (question.type === "multiple_choice") {
+          isCorrect = answer.answer === question.correctAnswer;
+        } else if (question.type === "checkbox") {
+          // For checkbox, both arrays need to have the same values regardless of order
+          const answerSet = new Set(answer.answer);
+          const correctSet = new Set(question.correctAnswer);
+          isCorrect = answerSet.size === correctSet.size && 
+                      [...answerSet].every(value => correctSet.has(value));
+        } else if (question.type === "text" || question.type === "code") {
+          // For text/code questions, compare with expected answer (case insensitive for text)
+          if (question.type === "text") {
+            isCorrect = String(answer.answer).toLowerCase() === 
+                        String(question.correctAnswer).toLowerCase();
+          } else {
+            isCorrect = String(answer.answer) === String(question.correctAnswer);
+          }
+        }
+        
+        const points = isCorrect ? question.points : 0;
+        totalScore += points;
+        
+        // Save the candidate's answer
+        const candidateAnswer = {
+          sessionId: session.id,
+          questionId: question.id,
+          answer: answer.answer,
+          isCorrect,
+          points
+        };
+        
+        await storage.createCandidateAnswer(candidateAnswer);
+        processedAnswers.push(candidateAnswer);
+      }
+      
+      // Update the session with the score and mark as completed
+      const updatedSession = await storage.updateTestSession(session.id, {
+        status: "completed",
+        completedAt: new Date(),
+        score: totalScore
+      });
+      
+      res.json({
+        score: totalScore,
+        totalPossibleScore: questions.reduce((sum, q) => sum + q.points, 0),
+        session: updatedSession
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to submit answers" });
+    }
+  });
+
+  // Start a test session
+  app.post("/api/sessions/:token/start", async (req: Request, res: Response) => {
+    try {
+      const token = req.params.token;
+      
+      const session = await storage.getTestSessionByToken(token);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Check if session is expired
+      if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+        return res.status(403).json({ message: "Test session has expired" });
+      }
+      
+      // Check if session is already completed or in progress
+      if (session.status === "completed") {
+        return res.status(400).json({ message: "Test has already been completed" });
+      }
+      
+      // Update the session status to in_progress and set the start time
+      const updatedSession = await storage.updateTestSession(session.id, {
+        status: "in_progress",
+        startedAt: new Date()
+      });
+      
+      res.json(updatedSession);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to start session" });
+    }
+  });
+  
   // Dashboard stats
   app.get("/api/stats", async (req: Request, res: Response) => {
     try {
