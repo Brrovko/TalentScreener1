@@ -186,7 +186,6 @@ const CandidatesTable = () => {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Position</TableHead>
-              <TableHead>Registered</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -218,11 +217,6 @@ const CandidatesTable = () => {
                     </TableCell>
                     <TableCell>{candidate.email}</TableCell>
                     <TableCell>{candidate.position || "—"}</TableCell>
-                    <TableCell>
-                      {formatDistanceToNow(new Date(candidate.createdAt), {
-                        addSuffix: true,
-                      })}
-                    </TableCell>
                     <TableCell>
                       {!testInfo.hasTests ? (
                         <Badge variant="outline">No tests</Badge>
