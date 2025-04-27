@@ -34,15 +34,15 @@ const loginSchema = z.object({
 
 const AuthPage = () => {
   const [activeTab, setActiveTab] = useState<string>("login");
-  const { loginMutation, user } = useAuth();
+  const { loginMutation, logoutMutation, user } = useAuth();
   const [location, setLocation] = useLocation();
   
+  // Если пользователь успешно вошел в систему и логин был только что выполнен
   useEffect(() => {
-    // Перенаправить на дашборд, если пользователь уже вошел в систему
-    if (user) {
+    if (user && !logoutMutation.isPending && loginMutation.isSuccess) {
       setLocation("/dashboard");
     }
-  }, [user, setLocation]);
+  }, [user, loginMutation.isSuccess, setLocation]);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -134,49 +134,89 @@ const AuthPage = () => {
               </p>
             </div>
 
-            <Card className="border-primary/20">
-              <CardContent className="pt-6">
-                <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                    <FormField
-                      control={loginForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Имя пользователя</FormLabel>
-                          <FormControl>
-                            <Input placeholder="admin" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+            {user ? (
+              // Пользователь авторизован - показываем информацию и кнопку выхода
+              <Card className="border-primary/20">
+                <CardContent className="pt-6">
+                  <div className="text-center mb-4">
+                    <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-3">
+                      <CheckCircle className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold">Вы авторизованы как</h3>
+                    <p className="text-xl font-bold text-primary-700 mb-1">{user.fullName}</p>
+                    <p className="text-sm text-slate-500 mb-4">
+                      {user.role === 'admin' ? 'Администратор' : 
+                       user.role === 'recruiter' ? 'Рекрутер' : 
+                       user.role === 'interviewer' ? 'Интервьюер' : user.role}
+                    </p>
+                    
+                    <div className="flex gap-3 mt-4">
+                      <Button 
+                        onClick={() => setLocation("/dashboard")}
+                        className="flex-1"
+                      >
+                        Перейти к панели управления
+                      </Button>
+                      
+                      <Button 
+                        variant="outline"
+                        onClick={() => logoutMutation.mutate()}
+                        disabled={logoutMutation.isPending}
+                        className="flex items-center gap-1"
+                      >
+                        <Lock className="h-4 w-4" />
+                        Выйти
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              // Пользователь не авторизован - показываем форму входа
+              <Card className="border-primary/20">
+                <CardContent className="pt-6">
+                  <Form {...loginForm}>
+                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                      <FormField
+                        control={loginForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Имя пользователя</FormLabel>
+                            <FormControl>
+                              <Input placeholder="admin" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={loginForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Пароль</FormLabel>
-                          <FormControl>
-                            <Input type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={loginForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Пароль</FormLabel>
+                            <FormControl>
+                              <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={loginMutation.isPending}
-                    >
-                      {loginMutation.isPending ? "Вход..." : "Войти в систему"}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={loginMutation.isPending}
+                      >
+                        {loginMutation.isPending ? "Вход..." : "Войти в систему"}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="mt-6 text-center text-sm text-slate-600">
               <p>Для получения учетных данных обратитесь к администратору системы</p>
