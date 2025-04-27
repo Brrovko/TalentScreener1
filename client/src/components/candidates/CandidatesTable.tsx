@@ -21,17 +21,14 @@ const CandidatesTable = () => {
   const [filter, setFilter] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [lastRefreshed, setLastRefreshed] = useState(new Date());
-  const [autoRefresh, setAutoRefresh] = useState(true);
   const queryClient = useQueryClient();
 
-  // Получаем данные о кандидатах с автообновлением
+  // Получаем данные о кандидатах
   const { data: candidates = [], isLoading } = useQuery<Candidate[]>({
     queryKey: ["/api/candidates"],
-    refetchInterval: autoRefresh ? 5000 : false, // Обновление каждые 5 секунд если включено
   });
 
-  // Получаем данные о сессиях для каждого кандидата с автообновлением
+  // Получаем данные о сессиях для каждого кандидата
   const { data: allCandidatesSessions = {} } = useQuery<Record<number, any[]>>({
     queryKey: ["/api/candidates/sessions"],
     queryFn: async () => {
@@ -52,32 +49,15 @@ const CandidatesTable = () => {
         })
       );
       
-      setLastRefreshed(new Date());
       return sessionsData;
     },
     enabled: candidates.length > 0,
-    refetchInterval: autoRefresh ? 5000 : false, // Обновление каждые 5 секунд если включено
-    refetchOnWindowFocus: true,
   });
   
-  // Получаем данные о тестах для их имен с автообновлением
+  // Получаем данные о тестах для их имен
   const { data: tests = [] } = useQuery<any[]>({
     queryKey: ["/api/tests"],
-    refetchInterval: autoRefresh ? 5000 : false, // Обновление каждые 5 секунд если включено
   });
-  
-  // Функция для ручного обновления данных
-  const refreshData = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/candidates"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/candidates/sessions"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
-    setLastRefreshed(new Date());
-  };
-  
-  // Обработчик для включения/выключения автообновления
-  const toggleAutoRefresh = () => {
-    setAutoRefresh(!autoRefresh);
-  };
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter((candidate) => {
@@ -198,28 +178,7 @@ const CandidatesTable = () => {
             onChange={(e) => setFilter(e.target.value)}
           />
           
-          <div className="flex items-center space-x-3">
-            <div className="text-xs text-gray-500">
-              Last refreshed: {formatDistanceToNow(lastRefreshed, { addSuffix: true })}
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex items-center h-8" 
-              onClick={refreshData}
-            >
-              <RefreshCw className="h-3.5 w-3.5 mr-1" />
-              Refresh
-            </Button>
-            <Button
-              variant={autoRefresh ? "default" : "secondary"}
-              size="sm"
-              className="h-8"
-              onClick={toggleAutoRefresh}
-            >
-              {autoRefresh ? "Auto-refresh: On" : "Auto-refresh: Off"}
-            </Button>
-          </div>
+          
         </div>
         <Table>
           <TableHeader>
