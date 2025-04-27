@@ -79,15 +79,13 @@ const CandidatesTable = () => {
         hasTests: false,
         status: "No tests",
         sessions: [],
+        hasFailed: false,
+        hasPassed: false
       };
     }
     
     const hasCompletedTests = sessions.some((session: any) => session.status === "completed");
     const hasInProgressTests = sessions.some((session: any) => session.status === "in_progress");
-    
-    let status = "Pending";
-    if (hasInProgressTests) status = "In progress";
-    if (hasCompletedTests) status = "Completed";
     
     // Добавляем информацию о тесте к каждой сессии
     const sessionsWithTestInfo = sessions.map((session: any) => {
@@ -99,17 +97,49 @@ const CandidatesTable = () => {
       };
     });
     
+    // Проверяем, есть ли непройденные или пройденные тесты
+    const hasFailed = sessionsWithTestInfo.some((session: any) => 
+      session.status === "completed" && session.passed === false
+    );
+    
+    const hasPassed = sessionsWithTestInfo.some((session: any) => 
+      session.status === "completed" && session.passed === true
+    );
+    
+    // Определяем общий статус
+    let status = "Pending";
+    if (hasInProgressTests) status = "In progress";
+    if (hasCompletedTests) {
+      if (hasFailed && hasPassed) {
+        status = "Mixed results";
+      } else if (hasFailed) {
+        status = "Failed";
+      } else if (hasPassed) {
+        status = "Passed";
+      } else {
+        status = "Completed";
+      }
+    }
+    
     return {
       hasTests: true,
       status,
       sessions: sessionsWithTestInfo,
+      hasFailed,
+      hasPassed
     };
   };
 
   // Получает вариант стиля для статуса
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" | "destructive" | "success" => {
     switch (status) {
       case "Completed":
+        return "default";
+      case "Passed":
+        return "success";
+      case "Failed":
+        return "destructive";
+      case "Mixed results":
         return "default";
       case "In progress":
         return "secondary";
@@ -212,25 +242,31 @@ const CandidatesTable = () => {
                                 <div className="font-semibold mb-2">Assigned Tests:</div>
                                 <div className="space-y-2">
                                   {testInfo.sessions.map((session: any) => (
-                                    <div key={session.id} className="flex items-center justify-between">
+                                    <div key={session.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md">
                                       <div>
                                         <div className="font-medium">{session.testName}</div>
-                                        <div className="text-sm text-gray-500">
-                                          Status: {session.status}
+                                        <div className="text-sm text-gray-500 flex items-center gap-1">
+                                          <span>Status:</span> 
+                                          <Badge variant={session.status === "completed" 
+                                            ? (session.passed ? "success" : "destructive") 
+                                            : getStatusBadgeVariant(session.status)}>
+                                            {session.status === "completed" 
+                                              ? (session.passed ? "Pass" : "Fail") 
+                                              : session.status}
+                                          </Badge>
                                         </div>
+                                        {session.status === "completed" && (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            Score: {session.percentScore || 0}% (Passing: {session.testPassingScore}%)
+                                          </div>
+                                        )}
                                       </div>
                                       {session.status === "completed" && (
-                                        <div className="flex items-center gap-2">
-                                          <div className="text-sm">
-                                            {session.percentScore || 0}%
-                                          </div>
-                                          <Badge variant={getResultBadgeVariant(session.passed)}>
-                                            {session.passed ? "Pass" : "Fail"}
-                                          </Badge>
+                                        <div>
                                           {session.passed ? (
-                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                            <CheckCircle className="h-5 w-5 text-green-500" />
                                           ) : (
-                                            <XCircle className="h-4 w-4 text-red-500" />
+                                            <XCircle className="h-5 w-5 text-red-500" />
                                           )}
                                         </div>
                                       )}

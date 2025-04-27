@@ -110,9 +110,31 @@ const TakeTestPage = () => {
     }
   });
   
+  // Check if all questions have been answered
+  const areAllQuestionsAnswered = () => {
+    if (!testDetails) return false;
+    
+    return answers.every(answer => {
+      if (Array.isArray(answer.answer)) {
+        return answer.answer.length > 0;
+      }
+      
+      if (typeof answer.answer === 'string') {
+        return answer.answer.trim() !== '';
+      }
+      
+      return answer.answer !== null && answer.answer !== undefined;
+    });
+  };
+  
   // Submit test answers
   const submitTestMutation = useMutation({
     mutationFn: async (answers: Answer[]) => {
+      // Validate all answers are provided
+      if (!areAllQuestionsAnswered()) {
+        throw new Error("Please answer all questions before submitting");
+      }
+      
       const response = await apiRequest("POST", `/api/sessions/${token}/submit`, { answers });
       if (!response.ok) {
         const errorData = await response.json();
@@ -382,12 +404,13 @@ const TakeTestPage = () => {
               <AlertTitle>Important Instructions</AlertTitle>
               <AlertDescription>
                 <ul className="list-disc pl-6 space-y-1 text-sm">
-                  <li>Answer all questions to the best of your ability</li>
+                  <li>All questions are mandatory and must be answered</li>
                   <li>You can navigate between questions using the previous and next buttons</li>
                   {testDetails.test.timeLimit && (
                     <li>The test has a time limit of {testDetails.test.timeLimit} minutes</li>
                   )}
                   <li>Once you submit the test, you cannot retake it</li>
+                  <li>Your answers will be automatically graded upon submission</li>
                 </ul>
               </AlertDescription>
             </Alert>
@@ -518,18 +541,29 @@ const TakeTestPage = () => {
               Previous
             </Button>
             
-            {currentQuestionIndex < testDetails.questions.length - 1 ? (
-              <Button onClick={() => setCurrentQuestionIndex(prev => prev + 1)}>
-                Next
-              </Button>
-            ) : (
-              <Button 
-                onClick={() => submitTestMutation.mutate(answers)}
-                disabled={submitTestMutation.isPending}
-              >
-                {submitTestMutation.isPending ? "Submitting..." : "Submit Test"}
-              </Button>
-            )}
+            <div className="flex items-center">
+              {!isCurrentAnswerValid() && (
+                <div className="text-red-500 text-sm mr-4">
+                  Please answer this question before continuing
+                </div>
+              )}
+              
+              {currentQuestionIndex < testDetails.questions.length - 1 ? (
+                <Button 
+                  onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                  disabled={!isCurrentAnswerValid()}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => submitTestMutation.mutate(answers)}
+                  disabled={submitTestMutation.isPending || !isCurrentAnswerValid()}
+                >
+                  {submitTestMutation.isPending ? "Submitting..." : "Submit Test"}
+                </Button>
+              )}
+            </div>
           </CardFooter>
         </Card>
       )}
