@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Candidate } from "@shared/schema";
 import {
   Table,
@@ -125,7 +126,11 @@ const CandidatesTable = () => {
                 const status = getCandidateStatus(candidate.id);
                 return (
                   <TableRow key={candidate.id} className="hover:bg-neutral-50">
-                    <TableCell className="font-medium">{candidate.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link to={`/candidates/${candidate.id}`} className="text-blue-600 hover:underline">
+                        {candidate.name}
+                      </Link>
+                    </TableCell>
                     <TableCell>{candidate.email}</TableCell>
                     <TableCell>{candidate.position || "—"}</TableCell>
                     <TableCell>

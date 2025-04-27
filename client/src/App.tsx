@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Tests from "@/pages/tests";
 import Candidates from "@/pages/candidates";
+import CandidateDetails from "@/pages/candidate-details";
 import Settings from "@/pages/settings";
 import Sidebar from "@/components/layout/Sidebar";
 
@@ -38,6 +39,7 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/tests" component={Tests} />
           <Route path="/candidates" component={Candidates} />
+          <Route path="/candidates/:id" component={CandidateDetails} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
