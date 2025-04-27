@@ -45,12 +45,19 @@ const AssignTestModal = ({ isOpen, onClose, candidate }: AssignTestModalProps) =
   // Create session mutation
   const createSessionMutation = useMutation({
     mutationFn: async (data: { testId: number; candidateId: number; expiresAt: Date }) => {
+      console.log("Sending test session data:", data);
       const response = await apiRequest("POST", "/api/sessions", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create test session");
+      }
       return response.json();
     },
     onSuccess: (data) => {
       const baseUrl = window.location.origin;
-      setTestLink(`${baseUrl}/take-test/${data.token}`);
+      const link = `${baseUrl}/take-test/${data.token}`;
+      console.log("Generated test link:", link, "Token:", data.token);
+      setTestLink(link);
       
       toast({
         title: "Test assigned successfully",

@@ -1,18 +1,19 @@
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Progress } from "@/components/ui/progress";
+import { useState, useEffect } from "react";
+import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, CheckCircle2, Clock, ArrowRight } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Clock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
 
+// Interfaces
 interface TestQuestion {
   id: number;
   content: string;
@@ -43,47 +44,42 @@ interface TestDetails {
   questions: TestQuestion[];
 }
 
-const TakeTest = () => {
-  const { token } = useParams();
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
+interface Answer {
+  questionId: number;
+  answer: string | string[] | number;
+}
+
+const TakeTestPage = () => {
+  const [, params] = useRoute<{ token: string }>("/take-test/:token");
+  const token = params?.token || "";
+  
+  const [started, setStarted] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, any>>({});
-  const [testStarted, setTestStarted] = useState(false);
-  const [testSubmitted, setTestSubmitted] = useState(false);
-  const [testResult, setTestResult] = useState<{
+  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [score, setScore] = useState<{
     score: number;
     totalPossibleScore: number;
+    session: any;
   } | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const [timerInterval, setTimerInterval] = useState<number | null>(null);
-
-  // Fetch test session data
-  const {
-    data: testData,
-    isLoading,
-    isError,
-    error,
-  } = useQuery<TestDetails>({
-    queryKey: ["/api/sessions/token", token],
-    queryFn: async () => {
-      const response = await apiRequest("GET", `/api/sessions/token/${token}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to load test");
-      }
-      return response.json();
-    },
-    retry: false,
+  
+  // Fetch test details
+  const { data: testDetails, isLoading, error } = useQuery({
+    queryKey: ['/api/sessions/token', token],
+    queryFn: getQueryFn({
+      on401: "returnNull",
+      useApi: true,
+      path: `/api/sessions/token/${token}`
+    }),
+    enabled: !!token,
+    refetchOnWindowFocus: false,
   });
-
-  // Start test mutation
+  
+  // Start test session
   const startTestMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest(
-        "POST",
-        `/api/sessions/${token}/start`
-      );
+      const response = await apiRequest("POST", `/api/sessions/${token}/start`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to start test");
@@ -91,50 +87,31 @@ const TakeTest = () => {
       return response.json();
     },
     onSuccess: () => {
-      setTestStarted(true);
+      setStarted(true);
       
-      // Start timer if test has time limit
-      if (testData?.test.timeLimit) {
-        const timeLimit = testData.test.timeLimit * 60; // convert to seconds
-        setTimeRemaining(timeLimit);
+      // Initialize answers array with empty values
+      if (testDetails) {
+        const initialAnswers = testDetails.questions.map(q => ({
+          questionId: q.id,
+          answer: q.type === "checkbox" ? [] : ""
+        }));
+        setAnswers(initialAnswers);
         
-        const interval = window.setInterval(() => {
-          setTimeRemaining((prev) => {
-            if (prev === null || prev <= 1) {
-              clearInterval(interval);
-              // Auto-submit when time is up
-              if (!testSubmitted) {
-                submitTestMutation.mutate(Object.entries(answers).map(([questionId, answer]) => ({
-                  questionId: parseInt(questionId),
-                  answer,
-                })));
-              }
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-        
-        setTimerInterval(interval);
+        // Set up timer if test has time limit
+        if (testDetails.test.timeLimit) {
+          setTimeLeft(testDetails.test.timeLimit * 60); // Convert minutes to seconds
+        }
       }
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: `Failed to start test: ${error.message}`,
-        variant: "destructive",
-      });
-    },
+      console.error("Failed to start test:", error);
+    }
   });
-
-  // Submit test mutation
+  
+  // Submit test answers
   const submitTestMutation = useMutation({
-    mutationFn: async (answersList: { questionId: number; answer: any }[]) => {
-      const response = await apiRequest(
-        "POST",
-        `/api/sessions/${token}/submit`,
-        { answers: answersList }
-      );
+    mutationFn: async (answers: Answer[]) => {
+      const response = await apiRequest("POST", `/api/sessions/${token}/submit`, { answers });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to submit test");
@@ -142,340 +119,264 @@ const TakeTest = () => {
       return response.json();
     },
     onSuccess: (data) => {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-      }
-      setTestSubmitted(true);
-      setTestResult({
-        score: data.score,
-        totalPossibleScore: data.totalPossibleScore,
-      });
-      toast({
-        title: "Test Submitted",
-        description: "Your test has been submitted successfully!",
-      });
+      setCompleted(true);
+      setScore(data);
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: `Failed to submit test: ${error.message}`,
-        variant: "destructive",
-      });
-    },
+      console.error("Failed to submit test:", error);
+    }
   });
-
-  // Cleanup timer interval on unmount
+  
+  // Timer effect
   useEffect(() => {
-    return () => {
-      if (timerInterval) {
-        clearInterval(timerInterval);
-      }
-    };
-  }, [timerInterval]);
-
-  const questions = useMemo(() => testData?.questions || [], [testData]);
-  const currentQuestion = questions[currentQuestionIndex];
-  const progress = questions.length ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
-
-  const formatTimeRemaining = () => {
-    if (timeRemaining === null) return "";
-    const minutes = Math.floor(timeRemaining / 60);
-    const seconds = timeRemaining % 60;
-    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-  };
-
-  const handleStartTest = () => {
-    startTestMutation.mutate();
-  };
-
-  const handlePreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
-  };
-
-  const handleNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  const handleAnswerChange = (answer: any) => {
-    if (!currentQuestion) return;
+    if (!started || timeLeft === null) return;
     
-    setAnswers({
-      ...answers,
-      [currentQuestion.id]: answer,
+    const interval = setInterval(() => {
+      setTimeLeft(prevTime => {
+        if (prevTime === null || prevTime <= 0) {
+          clearInterval(interval);
+          // Auto-submit when time runs out
+          if (!completed) {
+            submitTestMutation.mutate(answers);
+          }
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [started, timeLeft, completed, submitTestMutation, answers]);
+  
+  // Handle answers change
+  const handleAnswerChange = (questionId: number, value: string | string[] | number) => {
+    setAnswers(prev => 
+      prev.map(a => a.questionId === questionId ? { ...a, answer: value } : a)
+    );
+  };
+  
+  // Handle checkbox answers
+  const handleCheckboxChange = (questionId: number, optionValue: string, checked: boolean) => {
+    setAnswers(prev => {
+      return prev.map(a => {
+        if (a.questionId === questionId) {
+          const currentAnswers = Array.isArray(a.answer) ? [...a.answer] : [];
+          if (checked) {
+            // Add option if checked
+            return { ...a, answer: [...currentAnswers, optionValue] };
+          } else {
+            // Remove option if unchecked
+            return { ...a, answer: currentAnswers.filter(val => val !== optionValue) };
+          }
+        }
+        return a;
+      });
     });
   };
-
+  
+  // Get current question
+  const currentQuestion = testDetails?.questions[currentQuestionIndex];
+  
+  // Get current answer
+  const getCurrentAnswer = (questionId: number) => {
+    return answers.find(a => a.questionId === questionId)?.answer;
+  };
+  
+  // Format time
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+  
+  // Get options from question
   const getOptionsFromQuestion = (question: TestQuestion) => {
     if (!question.options) return [];
     
-    if (typeof question.options[0] === "string") {
-      return question.options as string[];
+    if (Array.isArray(question.options)) {
+      if (typeof question.options[0] === 'string') {
+        return question.options as string[];
+      } else if (typeof question.options[0] === 'object' && 'id' in question.options[0]) {
+        return question.options as { id: string; text: string }[];
+      }
     }
     
-    return (question.options as { id: string; text: string }[]).map(
-      (option) => option.text
-    );
-  };
-
-  const handleSubmitTest = () => {
-    const answersList = Object.entries(answers).map(([questionId, answer]) => ({
-      questionId: parseInt(questionId),
-      answer,
-    }));
-    
-    // Ensure all questions are answered
-    if (answersList.length < questions.length) {
-      const unansweredCount = questions.length - answersList.length;
-      toast({
-        title: "Warning",
-        description: `You have ${unansweredCount} unanswered question${
-          unansweredCount > 1 ? "s" : ""
-        }. Are you sure you want to submit?`,
-        variant: "destructive",
-      });
-      return;
+    // Try to parse JSON if it's a string
+    if (typeof question.options === 'string') {
+      try {
+        const parsed = JSON.parse(question.options);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.error("Failed to parse options:", e);
+        return [];
+      }
     }
     
-    submitTestMutation.mutate(answersList);
+    return [];
   };
-
-  const renderQuestionContent = () => {
-    if (!currentQuestion) return null;
-
-    const options = getOptionsFromQuestion(currentQuestion);
-    const selectedAnswer = answers[currentQuestion.id];
-
-    switch (currentQuestion.type) {
-      case "multiple_choice":
-        return (
-          <RadioGroup
-            value={selectedAnswer?.toString() ?? ""}
-            onValueChange={(value) => handleAnswerChange(value)}
-          >
-            <div className="space-y-3">
-              {options.map((option, index) => (
-                <div 
-                  key={index} 
-                  className="flex items-center space-x-2 border p-3 rounded-md hover:bg-neutral-50"
-                >
-                  <RadioGroupItem value={index.toString()} id={`option-${index}`} />
-                  <Label 
-                    htmlFor={`option-${index}`}
-                    className="flex-1 cursor-pointer"
-                  >
-                    {option}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </RadioGroup>
-        );
-
-      case "checkbox":
-        return (
-          <div className="space-y-3">
-            {options.map((option, index) => (
-              <div 
-                key={index} 
-                className="flex items-center space-x-2 border p-3 rounded-md hover:bg-neutral-50"
-              >
-                <Checkbox
-                  id={`option-${index}`}
-                  checked={
-                    Array.isArray(selectedAnswer) &&
-                    selectedAnswer.includes(index.toString())
-                  }
-                  onCheckedChange={(checked) => {
-                    const currentValue = Array.isArray(selectedAnswer)
-                      ? [...selectedAnswer]
-                      : [];
-                    
-                    if (checked) {
-                      handleAnswerChange([...currentValue, index.toString()]);
-                    } else {
-                      handleAnswerChange(
-                        currentValue.filter((item) => item !== index.toString())
-                      );
-                    }
-                  }}
-                />
-                <Label 
-                  htmlFor={`option-${index}`}
-                  className="flex-1 cursor-pointer"
-                >
-                  {option}
-                </Label>
-              </div>
-            ))}
-          </div>
-        );
-
-      case "text":
-      case "code":
-        return (
-          <Textarea
-            placeholder={`Enter your ${
-              currentQuestion.type === "code" ? "code" : "answer"
-            } here`}
-            className={currentQuestion.type === "code" ? "font-mono" : ""}
-            rows={6}
-            value={selectedAnswer || ""}
-            onChange={(e) => handleAnswerChange(e.target.value)}
-          />
-        );
-
-      default:
-        return (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              Unsupported question type: {currentQuestion.type}
-            </AlertDescription>
-          </Alert>
-        );
-    }
-  };
-
+  
+  // Loading state
   if (isLoading) {
     return (
-      <div className="container max-w-4xl mx-auto p-6 flex items-center justify-center min-h-screen">
-        <Card className="w-full">
-          <CardContent className="p-8 text-center">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="h-16 w-16 border-4 border-t-blue-600 border-b-blue-600 border-l-blue-100 border-r-blue-100 rounded-full animate-spin"></div>
-              <p className="text-xl font-medium">Loading test...</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 text-2xl font-bold">Loading Test...</div>
+          <Progress value={30} className="w-64" />
+        </div>
       </div>
     );
   }
-
-  if (isError) {
+  
+  // Error state
+  if (error || !testDetails) {
     return (
-      <div className="container max-w-4xl mx-auto p-6 flex items-center justify-center min-h-screen">
-        <Card className="w-full">
-          <CardContent className="p-8">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <AlertCircle className="h-16 w-16 text-red-500" />
-              <h2 className="text-2xl font-bold text-red-500">Error</h2>
-              <p className="text-center text-neutral-600">
-                {(error as Error)?.message || "Failed to load test. The link may be expired or invalid."}
-              </p>
-              <Button onClick={() => window.location.reload()}>
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!testData) {
-    return (
-      <div className="container max-w-4xl mx-auto p-6 flex items-center justify-center min-h-screen">
-        <Card className="w-full">
-          <CardContent className="p-8 text-center">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <AlertCircle className="h-16 w-16 text-red-500" />
-              <h2 className="text-2xl font-bold text-red-500">Error</h2>
-              <p>Test not found or link expired.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Test completed view
-  if (testSubmitted && testResult) {
-    return (
-      <div className="container max-w-4xl mx-auto p-6 flex items-center justify-center min-h-screen">
-        <Card className="w-full">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-center text-2xl">
-              Test Completed
-            </CardTitle>
-            <CardDescription className="text-center text-lg">
-              Thank you for taking the test!
+      <div className="container mx-auto max-w-3xl py-12">
+        <Alert variant="destructive" className="mb-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {error instanceof Error 
+              ? error.message 
+              : "Test not found or has expired. Please contact the recruiter."}
+          </AlertDescription>
+        </Alert>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Test Not Available</CardTitle>
+            <CardDescription>
+              The test you're trying to access is not available. This could be because:
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 pt-4">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <CheckCircle2 className="h-20 w-20 text-green-500" />
-              <h2 className="text-2xl font-bold">Your Results</h2>
-              <div className="text-5xl font-bold">
-                {testResult.score} / {testResult.totalPossibleScore}
-              </div>
-              <p className="text-center text-lg text-neutral-600">
-                Your responses have been recorded. The recruiter will review your results.
-              </p>
-            </div>
+          <CardContent>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>The test link has expired</li>
+              <li>The test has already been completed</li>
+              <li>The link is invalid</li>
+            </ul>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" variant="outline" onClick={() => window.close()}>
-              Close
-            </Button>
+            <p className="text-sm text-muted-foreground">
+              Please contact the recruiter who sent you this test for assistance.
+            </p>
           </CardFooter>
         </Card>
       </div>
     );
   }
-
-  // Start test view
-  if (!testStarted) {
+  
+  // Test completed state
+  if (completed && score) {
     return (
-      <div className="container max-w-4xl mx-auto p-6 flex items-center justify-center min-h-screen">
-        <Card className="w-full">
+      <div className="container mx-auto max-w-3xl py-12">
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Test Completed</CardTitle>
+            <CardDescription>
+              Thank you for completing the test, {testDetails.candidate.name}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-center space-x-2">
+              <CheckCircle2 className="h-6 w-6 text-green-500" />
+              <span className="text-xl font-medium">
+                Your responses have been recorded
+              </span>
+            </div>
+            
+            <div className="rounded-lg bg-slate-50 p-6">
+              <h3 className="mb-4 text-lg font-medium">Test Summary</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Test:</span>
+                  <span className="font-medium">{testDetails.test.name}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span>Category:</span>
+                  <span>{testDetails.test.category}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span>Questions Answered:</span>
+                  <span>{testDetails.questions.length}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <p className="mb-4 text-sm text-muted-foreground">
+                Your results have been submitted to the recruiter. They will contact you with next steps.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Test welcome screen
+  if (!started) {
+    return (
+      <div className="container mx-auto max-w-3xl py-12">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-center text-2xl">
-              {testData.test.name}
-            </CardTitle>
-            <CardDescription className="text-center text-lg">
-              {testData.test.category}
+            <CardTitle className="text-2xl">{testDetails.test.name}</CardTitle>
+            <CardDescription>
+              Welcome, {testDetails.candidate.name}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <h3 className="font-medium text-lg mb-2">Welcome, {testData.candidate.name}</h3>
-              <p className="text-neutral-600">
-                {testData.test.description || "You are about to start a test. Please read the instructions below."}
-              </p>
+              <h3 className="mb-2 font-medium">Test Description:</h3>
+              <p className="text-sm text-muted-foreground">{testDetails.test.description}</p>
             </div>
             
-            <div className="space-y-2">
-              <h3 className="font-medium text-lg">Test Information</h3>
-              <ul className="list-disc pl-5 text-neutral-600 space-y-1">
-                <li>Number of questions: {testData.questions.length}</li>
-                {testData.test.timeLimit && (
-                  <li>Time limit: {testData.test.timeLimit} minute{testData.test.timeLimit !== 1 ? "s" : ""}</li>
+            <div className="rounded-lg bg-slate-50 p-4">
+              <h3 className="mb-2 font-medium">Test Details:</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Category:</span>
+                  <span>{testDetails.test.category}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Number of Questions:</span>
+                  <span>{testDetails.questions.length}</span>
+                </div>
+                {testDetails.test.timeLimit && (
+                  <div className="flex justify-between">
+                    <span>Time Limit:</span>
+                    <span>{testDetails.test.timeLimit} minutes</span>
+                  </div>
                 )}
-                <li>You can navigate between questions using the buttons provided</li>
-                <li>Your answers are saved as you navigate between questions</li>
-                <li>You must answer all questions before submitting</li>
-              </ul>
+                <div className="flex justify-between">
+                  <span>Expires:</span>
+                  <span>{new Date(testDetails.session.expiresAt).toLocaleDateString()}</span>
+                </div>
+              </div>
             </div>
             
             <Alert>
-              <Clock className="h-4 w-4" />
-              <AlertTitle>Important</AlertTitle>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Important Instructions</AlertTitle>
               <AlertDescription>
-                {testData.test.timeLimit 
-                  ? `This test has a time limit of ${testData.test.timeLimit} minute${testData.test.timeLimit !== 1 ? "s" : ""}. The timer will start once you begin.`
-                  : "Take your time to answer the questions correctly. There is no time limit for this test."}
+                <ul className="list-disc pl-6 space-y-1 text-sm">
+                  <li>Answer all questions to the best of your ability</li>
+                  <li>You can navigate between questions using the previous and next buttons</li>
+                  {testDetails.test.timeLimit && (
+                    <li>The test has a time limit of {testDetails.test.timeLimit} minutes</li>
+                  )}
+                  <li>Once you submit the test, you cannot retake it</li>
+                </ul>
               </AlertDescription>
             </Alert>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex justify-between">
+            <p className="text-sm text-muted-foreground">
+              Click 'Start Test' when you're ready to begin
+            </p>
             <Button 
-              onClick={handleStartTest} 
-              className="w-full" 
+              onClick={() => startTestMutation.mutate()}
               disabled={startTestMutation.isPending}
             >
               {startTestMutation.isPending ? "Starting..." : "Start Test"}
@@ -485,85 +386,134 @@ const TakeTest = () => {
       </div>
     );
   }
-
-  // Taking test view
+  
+  // Render the actual test
   return (
-    <div className="container max-w-4xl mx-auto p-6">
-      <Card className="w-full">
-        <CardHeader className="border-b">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>{testData.test.name}</CardTitle>
-              <CardDescription>
-                Question {currentQuestionIndex + 1} of {questions.length}
-              </CardDescription>
-            </div>
-            {timeRemaining !== null && (
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-neutral-500" />
-                <span className="font-medium">
-                  {formatTimeRemaining()}
-                </span>
-              </div>
-            )}
-          </div>
-          <Progress value={progress} className="mt-2" />
-        </CardHeader>
+    <div className="container mx-auto max-w-3xl py-8">
+      {/* Test header with progress and timer */}
+      <div className="mb-6 flex items-center justify-between rounded-lg bg-white p-4 shadow">
+        <div>
+          <h1 className="text-xl font-bold">{testDetails.test.name}</h1>
+          <p className="text-sm text-muted-foreground">
+            Question {currentQuestionIndex + 1} of {testDetails.questions.length}
+          </p>
+        </div>
         
-        <CardContent className="pt-6 pb-8">
-          {currentQuestion && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-2">
-                  {currentQuestion.content}
-                </h3>
-                <p className="text-sm text-neutral-500">
-                  {currentQuestion.points} point{currentQuestion.points !== 1 ? "s" : ""} •{" "}
-                  {currentQuestion.type === "multiple_choice"
-                    ? "Select one option"
-                    : currentQuestion.type === "checkbox"
-                    ? "Select all that apply"
-                    : currentQuestion.type === "code"
-                    ? "Write your code"
-                    : "Write your answer"}
-                </p>
-              </div>
-              
-              <div className="min-h-[200px]">
-                {renderQuestionContent()}
-              </div>
+        <div className="flex items-center space-x-4">
+          <Progress 
+            value={(currentQuestionIndex + 1) / testDetails.questions.length * 100}
+            className="w-32"
+          />
+          
+          {timeLeft !== null && (
+            <div className="flex items-center space-x-1 text-sm">
+              <Clock className="h-4 w-4" />
+              <span 
+                className={timeLeft < 60 ? "text-red-500 font-bold" : ""}
+              >
+                {formatTime(timeLeft)}
+              </span>
             </div>
           )}
-        </CardContent>
-        
-        <CardFooter className="border-t flex justify-between">
-          <Button
-            variant="outline"
-            onClick={handlePreviousQuestion}
-            disabled={currentQuestionIndex === 0}
-          >
-            Previous
-          </Button>
+        </div>
+      </div>
+      
+      {/* Current question */}
+      {currentQuestion && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              Question {currentQuestionIndex + 1}: {currentQuestion.content}
+            </CardTitle>
+            <CardDescription>
+              {currentQuestion.type === "multiple_choice" ? "Select one option" :
+               currentQuestion.type === "checkbox" ? "Select all that apply" :
+               currentQuestion.type === "text" ? "Enter your answer" :
+               "Write code"} • {currentQuestion.points} point{currentQuestion.points !== 1 ? 's' : ''}
+            </CardDescription>
+          </CardHeader>
           
-          <div className="flex gap-3">
-            {currentQuestionIndex < questions.length - 1 ? (
-              <Button onClick={handleNextQuestion}>
+          <CardContent>
+            {currentQuestion.type === "multiple_choice" && (
+              <RadioGroup
+                value={getCurrentAnswer(currentQuestion.id) as string}
+                onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+                className="space-y-3"
+              >
+                {getOptionsFromQuestion(currentQuestion).map((option, index) => {
+                  const value = typeof option === 'string' ? option : option.id;
+                  const label = typeof option === 'string' ? option : option.text;
+                  
+                  return (
+                    <div className="flex items-center space-x-2" key={index}>
+                      <RadioGroupItem value={value} id={`option-${index}`} />
+                      <Label htmlFor={`option-${index}`}>{label}</Label>
+                    </div>
+                  );
+                })}
+              </RadioGroup>
+            )}
+            
+            {currentQuestion.type === "checkbox" && (
+              <div className="space-y-3">
+                {getOptionsFromQuestion(currentQuestion).map((option, index) => {
+                  const value = typeof option === 'string' ? option : option.id;
+                  const label = typeof option === 'string' ? option : option.text;
+                  const currentAnswers = getCurrentAnswer(currentQuestion.id) as string[];
+                  
+                  return (
+                    <div className="flex items-center space-x-2" key={index}>
+                      <Checkbox
+                        id={`option-${index}`}
+                        checked={Array.isArray(currentAnswers) && currentAnswers.includes(value)}
+                        onCheckedChange={(checked) => 
+                          handleCheckboxChange(currentQuestion.id, value, checked === true)
+                        }
+                      />
+                      <Label htmlFor={`option-${index}`}>{label}</Label>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {(currentQuestion.type === "text" || currentQuestion.type === "code") && (
+              <Textarea
+                value={getCurrentAnswer(currentQuestion.id) as string}
+                onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                placeholder={currentQuestion.type === "code" ? "Write your code here..." : "Enter your answer..."}
+                className={currentQuestion.type === "code" ? "font-mono" : ""}
+                rows={6}
+              />
+            )}
+          </CardContent>
+          
+          <CardFooter className="flex justify-between">
+            <Button
+              variant="outline"
+              disabled={currentQuestionIndex === 0}
+              onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
+            >
+              Previous
+            </Button>
+            
+            {currentQuestionIndex < testDetails.questions.length - 1 ? (
+              <Button onClick={() => setCurrentQuestionIndex(prev => prev + 1)}>
                 Next
-                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
               <Button 
-                onClick={handleSubmitTest}
+                onClick={() => submitTestMutation.mutate(answers)}
                 disabled={submitTestMutation.isPending}
               >
                 {submitTestMutation.isPending ? "Submitting..." : "Submit Test"}
               </Button>
             )}
-          </div>
-        </CardFooter>
-      </Card>
+          </CardFooter>
+        </Card>
+      )}
     </div>
   );
 };
 
-export default TakeTest;
+export default TakeTestPage;

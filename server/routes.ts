@@ -269,10 +269,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/sessions", async (req: Request, res: Response) => {
     try {
-      const sessionData = {
+      // Конвертируем строку даты в объект Date
+      let sessionData = {
         ...req.body,
         token: nanoid(10), // Generate a unique token for the test session
       };
+      
+      // Если expiresAt пришел как строка, конвертируем в Date
+      if (typeof sessionData.expiresAt === 'string') {
+        sessionData.expiresAt = new Date(sessionData.expiresAt);
+      }
       
       const validatedData = insertTestSessionSchema.parse(sessionData);
       const session = await storage.createTestSession(validatedData);
@@ -286,6 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      console.error("Session creation error:", error);
       res.status(500).json({ message: "Failed to create test session" });
     }
   });
