@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
-import { z } from "zod";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -13,14 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -31,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Question, Test } from "@shared/schema";
 
 // Определим типы вопросов как константы
@@ -44,75 +33,49 @@ interface QuestionFormProps {
   onClose: () => void;
 }
 
-// Преобразуем readonly массив в обычный для использования с z.enum
-const questionTypeValues = [...QUESTION_TYPES] as [string, ...string[]];
-
-// Custom schema for the form
-const questionFormSchema = z.object({
-  testId: z.number(),
-  content: z.string().min(5, "Question content must be at least 5 characters"),
-  type: z.enum(questionTypeValues),
-  options: z.array(z.string().min(1, "Option cannot be empty")).min(1, "At least one option is required"),
-  correctAnswer: z.union([
-    z.number(), // For multiple choice
-    z.array(z.number()), // For checkbox
-    z.string(), // For text/code
-  ]),
-  points: z.number().min(1, "Points must be at least 1"),
-  order: z.number().optional(),
-});
-
-type QuestionFormValues = z.infer<typeof questionFormSchema>;
+interface FormData {
+  testId: number;
+  content: string;
+  type: QuestionType;
+  options: string[];
+  correctAnswer: string | number | number[];
+  points: number;
+  order: number;
+}
 
 const QuestionForm = ({ test, question, onClose }: QuestionFormProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Initialize default values based on question type
-  const getDefaultCorrectAnswer = (type: QuestionType) => {
-    if (type === "multiple_choice") return 0;
-    if (type === "checkbox") return [] as number[];
-    return "";
-  };
-
-  const form = useForm<QuestionFormValues>({
-    resolver: zodResolver(questionFormSchema),
-    defaultValues: question
-      ? {
-          testId: question.testId,
-          content: question.content,
-          type: question.type as QuestionType,
-          options: (question.options as string[]) || [""],
-          correctAnswer: question.correctAnswer,
-          points: question.points,
-          order: question.order,
-        }
-      : {
-          testId: test.id,
-          content: "",
-          type: "multiple_choice",
-          options: ["", ""],
-          correctAnswer: 0, // Default to first option for multiple choice
-          points: 1,
-          order: test.questionCount + 1,
-        },
+  
+  // Form state
+  const [formData, setFormData] = useState<FormData>({
+    testId: test.id,
+    content: "",
+    type: "multiple_choice",
+    options: ["", ""],
+    correctAnswer: 0,
+    points: 1,
+    order: test.questionCount + 1,
   });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "options",
-  });
-
-  const currentType = form.watch("type");
-
-  // Reset correct answer when type changes
-  const handleTypeChange = (type: QuestionType) => {
-    form.setValue("type", type);
-    form.setValue("correctAnswer", getDefaultCorrectAnswer(type));
-  };
-
+  
+  // Initialize form data from question if editing
+  useEffect(() => {
+    if (question) {
+      setFormData({
+        testId: question.testId,
+        content: question.content,
+        type: question.type as QuestionType,
+        options: (question.options as string[]) || [""],
+        correctAnswer: question.correctAnswer,
+        points: question.points,
+        order: question.order,
+      });
+    }
+  }, [question]);
+  
+  // Mutations
   const createQuestionMutation = useMutation({
-    mutationFn: async (data: QuestionFormValues) => {
+    mutationFn: async (data: FormData) => {
       const response = await apiRequest("POST", "/api/questions", data);
       return response.json();
     },
@@ -135,7 +98,7 @@ const QuestionForm = ({ test, question, onClose }: QuestionFormProps) => {
   });
 
   const updateQuestionMutation = useMutation({
-    mutationFn: async (data: QuestionFormValues & { id: number }) => {
+    mutationFn: async (data: FormData & { id: number }) => {
       const { id, ...updateData } = data;
       const response = await apiRequest("PATCH", `/api/questions/${id}`, updateData);
       return response.json();
@@ -157,26 +120,78 @@ const QuestionForm = ({ test, question, onClose }: QuestionFormProps) => {
       });
     },
   });
-
-  const onSubmit = async (data: QuestionFormValues) => {
-    setIsSubmitting(true);
-    try {
-      if (question?.id) {
-        await updateQuestionMutation.mutateAsync({ ...data, id: question.id });
-      } else {
-        await createQuestionMutation.mutateAsync(data);
-      }
-    } finally {
-      setIsSubmitting(false);
+  
+  // Form handlers
+  const handleInputChange = (field: keyof FormData, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+  
+  const handleTypeChange = (type: QuestionType) => {
+    const correctAnswer = 
+      type === "multiple_choice" ? 0 :
+      type === "checkbox" ? [] as number[] : "";
+      
+    setFormData((prev) => ({ 
+      ...prev, 
+      type, 
+      correctAnswer,
+      // Reset options if switching to/from text or code
+      options: (type === "multiple_choice" || type === "checkbox") 
+        ? (prev.options.length ? prev.options : ["", ""]) 
+        : []
+    }));
+  };
+  
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...formData.options];
+    newOptions[index] = value;
+    setFormData({ ...formData, options: newOptions });
+  };
+  
+  const addOption = () => {
+    setFormData({ ...formData, options: [...formData.options, ""] });
+  };
+  
+  const removeOption = (index: number) => {
+    const newOptions = [...formData.options];
+    newOptions.splice(index, 1);
+    
+    // Also remove from correctAnswer if it's an array (checkbox)
+    let correctAnswer = formData.correctAnswer;
+    if (Array.isArray(correctAnswer)) {
+      correctAnswer = correctAnswer
+        .map(val => val > index ? val - 1 : val)
+        .filter(val => val !== index);
+    } else if (typeof correctAnswer === 'number' && correctAnswer === index) {
+      correctAnswer = 0;
+    } else if (typeof correctAnswer === 'number' && correctAnswer > index) {
+      correctAnswer = correctAnswer - 1;
+    }
+    
+    setFormData({ ...formData, options: newOptions, correctAnswer });
+  };
+  
+  const handleRadioChange = (index: number) => {
+    setFormData({ ...formData, correctAnswer: index });
+  };
+  
+  const handleCheckboxChange = (index: number, checked: boolean) => {
+    const currentAnswers = Array.isArray(formData.correctAnswer) 
+      ? [...formData.correctAnswer] 
+      : [];
+      
+    if (checked) {
+      setFormData({ ...formData, correctAnswer: [...currentAnswers, index] });
+    } else {
+      setFormData({ 
+        ...formData, 
+        correctAnswer: currentAnswers.filter(value => value !== index) 
+      });
     }
   };
-
-  const addOption = () => {
-    append("");
-  };
-
+  
   const resetForm = () => {
-    form.reset({
+    setFormData({
       testId: test.id,
       content: "",
       type: "multiple_choice",
@@ -186,7 +201,43 @@ const QuestionForm = ({ test, question, onClose }: QuestionFormProps) => {
       order: test.questionCount + 1,
     });
   };
-
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (formData.content.length < 5) {
+      toast({
+        title: "Validation Error",
+        description: "Question content must be at least 5 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate options for multiple choice and checkbox
+    if ((formData.type === "multiple_choice" || formData.type === "checkbox") && 
+        (!formData.options.length || formData.options.some(opt => !opt.trim()))) {
+      toast({
+        title: "Validation Error",
+        description: "All options must be filled",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      if (question?.id) {
+        await updateQuestionMutation.mutateAsync({ ...formData, id: question.id });
+      } else {
+        await createQuestionMutation.mutateAsync(formData);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
   return (
     <Dialog open={true} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -194,239 +245,167 @@ const QuestionForm = ({ test, question, onClose }: QuestionFormProps) => {
           <DialogTitle>{question ? "Edit Question" : "Add New Question"}</DialogTitle>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="content"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Question Text</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter the question text"
-                      className="resize-none"
-                      rows={3}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="content">Question Text</Label>
+            <Textarea
+              id="content"
+              placeholder="Enter the question text"
+              className="resize-none"
+              rows={3}
+              value={formData.content}
+              onChange={(e) => handleInputChange("content", e.target.value)}
+              required
+              minLength={5}
             />
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Question Type</FormLabel>
-                    <Select
-                      onValueChange={(value) => handleTypeChange(value as QuestionType)}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select question type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                        <SelectItem value="checkbox">Checkbox (Multiple Answer)</SelectItem>
-                        <SelectItem value="text">Text Answer</SelectItem>
-                        <SelectItem value="code">Code</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="points"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Points</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Points for this question"
-                        min={1}
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="type">Question Type</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => handleTypeChange(value as QuestionType)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select question type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                  <SelectItem value="checkbox">Checkbox (Multiple Answer)</SelectItem>
+                  <SelectItem value="text">Text Answer</SelectItem>
+                  <SelectItem value="code">Code</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {(currentType === "multiple_choice" || currentType === "checkbox") && (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <FormLabel>Options</FormLabel>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addOption}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Option
-                  </Button>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="points">Points</Label>
+              <Input
+                id="points"
+                type="number"
+                placeholder="Points for this question"
+                min={1}
+                value={formData.points}
+                onChange={(e) => handleInputChange("points", parseInt(e.target.value) || 1)}
+              />
+            </div>
+          </div>
 
-                <div className="space-y-3">
-                  {fields.map((field, index) => (
-                    <div key={field.id} className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <FormField
-                          control={form.control}
-                          name={`options.${index}`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input
-                                  placeholder={`Option ${index + 1}`}
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+          {(formData.type === "multiple_choice" || formData.type === "checkbox") && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Options</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addOption}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Option
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {formData.options.map((option, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <Input
+                        placeholder={`Option ${index + 1}`}
+                        value={option}
+                        onChange={(e) => handleOptionChange(index, e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    {formData.options.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeOption(index)}
+                        className="mt-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+
+                    {formData.type === "multiple_choice" && (
+                      <div className="flex items-center mt-3">
+                        <input
+                          type="radio"
+                          checked={formData.correctAnswer === index}
+                          onChange={() => handleRadioChange(index)}
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                         />
                       </div>
+                    )}
 
-                      {fields.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => remove(index)}
-                          className="mt-1"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-
-                      {currentType === "multiple_choice" && (
-                        <FormField
-                          control={form.control}
-                          name="correctAnswer"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center space-x-3 space-y-0 mt-1">
-                              <FormControl>
-                                <input
-                                  type="radio"
-                                  checked={field.value === index}
-                                  onChange={() => field.onChange(index)}
-                                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                    {formData.type === "checkbox" && (
+                      <div className="flex items-center mt-3">
+                        <Checkbox
+                          checked={Array.isArray(formData.correctAnswer) && 
+                            formData.correctAnswer.includes(index)}
+                          onCheckedChange={(checked) => 
+                            handleCheckboxChange(index, checked === true)}
                         />
-                      )}
-
-                      {currentType === "checkbox" && (
-                        <FormField
-                          control={form.control}
-                          name="correctAnswer"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center space-x-3 space-y-0 mt-1">
-                              <FormControl>
-                                <Checkbox
-                                  checked={(field.value as number[]).includes(index)}
-                                  onCheckedChange={(checked) => {
-                                    const currentAnswers = [...(field.value as number[])];
-                                    if (checked) {
-                                      field.onChange([...currentAnswers, index]);
-                                    } else {
-                                      field.onChange(
-                                        currentAnswers.filter((value) => value !== index)
-                                      );
-                                    }
-                                  }}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
-
-            {currentType === "text" && (
-              <FormField
-                control={form.control}
-                name="correctAnswer"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Correct Answer</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter the correct answer"
-                        {...field}
-                        value={field.value as string}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {currentType === "code" && (
-              <FormField
-                control={form.control}
-                name="correctAnswer"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Correct Answer (Code)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter the correct code answer"
-                        className="resize-none font-mono"
-                        rows={5}
-                        {...field}
-                        value={field.value as string}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            <div className="flex justify-end space-x-3">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              {!question && (
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset
-                </Button>
-              )}
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  "Saving..."
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    {question ? "Update" : "Save"}
-                  </>
-                )}
-              </Button>
             </div>
-          </form>
-        </Form>
+          )}
+
+          {formData.type === "text" && (
+            <div className="space-y-2">
+              <Label htmlFor="correctAnswer">Correct Answer</Label>
+              <Input
+                id="correctAnswer"
+                placeholder="Enter the correct answer"
+                value={formData.correctAnswer as string}
+                onChange={(e) => handleInputChange("correctAnswer", e.target.value)}
+              />
+            </div>
+          )}
+
+          {formData.type === "code" && (
+            <div className="space-y-2">
+              <Label htmlFor="correctAnswerCode">Correct Answer (Code)</Label>
+              <Textarea
+                id="correctAnswerCode"
+                placeholder="Enter the correct code answer"
+                className="resize-none font-mono"
+                rows={5}
+                value={formData.correctAnswer as string}
+                onChange={(e) => handleInputChange("correctAnswer", e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-3">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            {!question && (
+              <Button type="button" variant="outline" onClick={resetForm}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            )}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                "Saving..."
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {question ? "Update" : "Save"}
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

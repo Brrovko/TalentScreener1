@@ -51,7 +51,7 @@ const CreateTestModal = ({ isOpen, onClose, editingTest }: CreateTestModalProps)
               <TestForm test={editingTest} onComplete={onClose} />
             </TabsContent>
             <TabsContent value="questions">
-              <QuestionsManager test={editingTest} />
+              {editingTest && <QuestionsManager test={editingTest} />}
             </TabsContent>
           </Tabs>
         ) : (

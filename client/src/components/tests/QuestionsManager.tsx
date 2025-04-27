@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, GripVertical, Edit, Trash2, MoveUp, MoveDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Question, Test, QUESTION_TYPES } from "@shared/schema";
+import { Question, Test } from "@shared/schema";
 import {
   Table,
   TableBody,
@@ -14,7 +14,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import QuestionForm from "./QuestionForm";
+
+// Определим типы вопросов как константы для отображения
+const QUESTION_TYPES = ["multiple_choice", "checkbox", "text", "code"] as const;
+
+// Импортируем локально, так как это новый файл, созданный нами
+import QuestionForm from "@/components/tests/QuestionForm";
 import {
   AlertDialog,
   AlertDialogAction,
