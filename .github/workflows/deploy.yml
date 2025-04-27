@@ -3,7 +3,7 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - main   # или твоя прод-ветка
+      - main
 
 jobs:
   deploy:
@@ -23,29 +23,40 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
             set -e
 
-            # Проверяем, существует ли папка проекта
-            if [ ! -d "${{ secrets.SSH_PROJECT_PATH }}" ]; then
+            if [ ! -d "${{ secrets.SSH_PROJECT_PATH }}/.git" ]; then
               echo "Проект не найден. Клонируем репозиторий..."
               git clone https://github.com/${{ github.repository }} ${{ secrets.SSH_PROJECT_PATH }}
               cd ${{ secrets.SSH_PROJECT_PATH }}
-              
-              echo "Устанавливаем зависимости..."
               npm install
             else
               echo "Проект найден. Обновляем..."
               cd ${{ secrets.SSH_PROJECT_PATH }}
-              git pull origin main
-              echo "Устанавливаем зависимости..."
               npm install
+              git pull origin main
             fi
 
-            echo "Остановика старого процесса"
             if [ -f app.pid ]; then
+              echo "Останавливаем старый процесс..."
               kill \$(cat app.pid) || true
               rm app.pid
             fi
 
-            echo "Запуск нового процесса"
+            echo "Запуск нового процесса..."
             nohup npm start > app.log 2>&1 &
             echo \$! > app.pid
+
+            if ps -p \$(cat app.pid) > /dev/null; then
+              echo "Сервис успешно запустился!"
+            else
+              echo "Ошибка при запуске сервиса!"
+              exit 1
+            fi
+
+            echo "Проверка доступности сервиса..."
+            if curl --silent --fail http://localhost:3000 > /dev/null; then
+              echo "Сервис доступен!"
+            else
+              echo "Сервис не доступен!"
+              exit 1
+            fi
           EOF
