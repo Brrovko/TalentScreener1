@@ -157,6 +157,25 @@ const TakeTestPage = () => {
     );
   };
   
+  // Check if current answer is valid (non-empty)
+  const isCurrentAnswerValid = () => {
+    if (!currentQuestion) return true;
+    
+    const answer = getCurrentAnswer(currentQuestion.id);
+    
+    if (answer === undefined) return false;
+    
+    if (Array.isArray(answer)) {
+      return answer.length > 0;
+    }
+    
+    if (typeof answer === 'string') {
+      return answer.trim() !== '';
+    }
+    
+    return answer !== null && answer !== undefined;
+  };
+  
   // Handle checkbox answers
   const handleCheckboxChange = (questionId: number, optionValue: string, checked: boolean) => {
     setAnswers(prev => {
