@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, CheckCircle, XCircle, ChevronRight } from "lucide-react";
 import AssignTestModal from "./AssignTestModal";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTranslation } from "react-i18next";
 
 const CandidatesTable = () => {
   const [filter, setFilter] = useState("");
@@ -163,6 +164,7 @@ const CandidatesTable = () => {
   // Mobile card view for a candidate
   const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
     const testInfo = getCandidateTestInfo(candidate.id);
+    const { t } = useTranslation();
     
     return (
       <div className="p-4 border-b border-neutral-200 last:border-b-0">
@@ -177,15 +179,15 @@ const CandidatesTable = () => {
             className="h-8"
           >
             <FileSpreadsheet className="h-4 w-4 mr-1" />
-            <span className="sr-only md:not-sr-only">Assign Test</span>
+            <span className="sr-only md:not-sr-only">{t('candidates.assign_test')}</span>
           </Button>
         </div>
         
         <div className="text-sm text-neutral-600 mb-1">{candidate.email}</div>
-        <div className="text-sm text-neutral-500 mb-3">{candidate.position || "No position"}</div>
+        <div className="text-sm text-neutral-500 mb-3">{candidate.position || t('candidates.no_position')}</div>
         
         {!testInfo.hasTests ? (
-          <Badge variant="outline">No tests</Badge>
+          <Badge variant="outline">{t('candidates.no_tests')}</Badge>
         ) : (
           <div className="flex flex-col space-y-1">
             <div className="flex flex-col space-y-1 bg-gray-50 p-2 rounded-md text-sm">
@@ -199,8 +201,8 @@ const CandidatesTable = () => {
                       className="text-xs px-1.5 py-0"
                     >
                       {session.status === "completed" 
-                        ? (session.passed ? "Pass" : "Fail") 
-                        : session.status}
+                        ? (session.passed ? t('candidates.pass') : t('candidates.fail')) 
+                        : session.status === "in_progress" ? t('candidates.in_progress') : t('candidates.pending')}
                     </Badge>
                     {session.status === "completed" && (
                       <span className="ml-1">
@@ -221,13 +223,15 @@ const CandidatesTable = () => {
     );
   };
 
+  const { t } = useTranslation();
+
   return (
     <>
       <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
         <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <input
             type="text"
-            placeholder="Filter candidates..."
+            placeholder={t('common.filter') + '...'}
             className="w-full md:max-w-xs px-3 py-2 border border-neutral-200 rounded-md"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -238,12 +242,12 @@ const CandidatesTable = () => {
         {isMobile ? (
           <div className="divide-y divide-neutral-200">
             {isLoading ? (
-              <div className="text-center py-8">Loading candidates...</div>
+              <div className="text-center py-8">{t('common.loading')}</div>
             ) : filteredCandidates.length === 0 ? (
               <div className="text-center py-8">
                 {filter
-                  ? "No candidates match your filter criteria"
-                  : "No candidates available"}
+                  ? t('common.no_filter_results')
+                  : t('common.no_data')}
               </div>
             ) : (
               filteredCandidates.map((candidate) => (
@@ -256,26 +260,26 @@ const CandidatesTable = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-neutral-50 hover:bg-neutral-50">
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Position</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('candidates.name')}</TableHead>
+                <TableHead>{t('candidates.email')}</TableHead>
+                <TableHead>{t('candidates.position')}</TableHead>
+                <TableHead>{t('candidates.status')}</TableHead>
+                <TableHead className="text-right">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
-                    Loading candidates...
+                    {t('common.loading')}
                   </TableCell>
                 </TableRow>
               ) : filteredCandidates.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
                     {filter
-                      ? "No candidates match your filter criteria"
-                      : "No candidates available"}
+                      ? t('common.no_filter_results')
+                      : t('common.no_data')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -292,7 +296,7 @@ const CandidatesTable = () => {
                       <TableCell>{candidate.position || "—"}</TableCell>
                       <TableCell>
                         {!testInfo.hasTests ? (
-                          <Badge variant="outline">No tests</Badge>
+                          <Badge variant="outline">{t('candidates.no_tests')}</Badge>
                         ) : (
                           <div className="flex flex-col space-y-1 min-w-[220px]">
                             <div className="flex flex-col space-y-1 bg-gray-50 p-2 rounded-md text-sm">
@@ -306,8 +310,8 @@ const CandidatesTable = () => {
                                       className="text-xs px-1.5 py-0"
                                     >
                                       {session.status === "completed" 
-                                        ? (session.passed ? "Pass" : "Fail") 
-                                        : session.status}
+                                        ? (session.passed ? t('candidates.pass') : t('candidates.fail')) 
+                                        : session.status === "in_progress" ? t('candidates.in_progress') : t('candidates.pending')}
                                     </Badge>
                                     {session.status === "completed" && (
                                       <span className="ml-1">
@@ -333,7 +337,7 @@ const CandidatesTable = () => {
                           className="h-8"
                         >
                           <FileSpreadsheet className="h-4 w-4 mr-1" />
-                          Assign Test
+                          {t('candidates.assign_test')}
                         </Button>
                       </TableCell>
                     </TableRow>

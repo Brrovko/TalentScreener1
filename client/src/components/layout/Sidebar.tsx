@@ -9,11 +9,14 @@ import {
   X 
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "@/components/ui/language-switcher";
 
 const Sidebar = () => {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
 
   const isActive = (path: string): boolean => {
     if (path === "/" && location === "/") return true;
@@ -56,14 +59,17 @@ const Sidebar = () => {
   // Mobile menu header
   const MobileHeader = () => (
     <div className="flex items-center justify-between p-4 border-b border-neutral-200 md:hidden">
-      <h1 className="text-lg font-semibold text-neutral-800">Applicant Screening</h1>
-      <button 
-        onClick={toggleMobileMenu}
-        className="p-1 rounded-md hover:bg-neutral-100"
-        aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-      >
-        {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
+      <h1 className="text-lg font-semibold text-neutral-800">{t('common.app_name')}</h1>
+      <div className="flex items-center gap-2">
+        <LanguageSwitcher />
+        <button 
+          onClick={toggleMobileMenu}
+          className="p-1 rounded-md hover:bg-neutral-100"
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+        >
+          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
+      </div>
     </div>
   );
 
@@ -75,8 +81,8 @@ const Sidebar = () => {
           <span>JD</span>
         </div>
         <div>
-          <p className="font-medium">Admin User</p>
-          <p className="text-neutral-500 text-xs">HR Manager</p>
+          <p className="font-medium">{t('common.admin')}</p>
+          <p className="text-neutral-500 text-xs">{t('common.hr_manager')}</p>
         </div>
       </div>
     </div>
@@ -89,22 +95,22 @@ const Sidebar = () => {
         <NavItem 
           to="/dashboard" 
           icon={<LayoutGrid className="h-5 w-5 mr-3" />} 
-          label="Dashboard" 
+          label={t('common.dashboard')} 
         />
         <NavItem 
           to="/tests" 
           icon={<ClipboardList className="h-5 w-5 mr-3" />} 
-          label="Tests" 
+          label={t('common.tests')} 
         />
         <NavItem 
           to="/candidates" 
           icon={<Users className="h-5 w-5 mr-3" />} 
-          label="Candidates" 
+          label={t('common.candidates')} 
         />
         <NavItem 
           to="/settings" 
           icon={<Settings className="h-5 w-5 mr-3" />} 
-          label="Settings" 
+          label={t('common.settings')} 
         />
       </ul>
     </nav>
@@ -126,7 +132,7 @@ const Sidebar = () => {
           >
             <div className="flex flex-col h-full">
               <div className="p-4 border-b border-neutral-200">
-                <h1 className="text-xl font-semibold text-neutral-800">Applicant Screening</h1>
+                <h1 className="text-xl font-semibold text-neutral-800">{t('common.app_name')}</h1>
               </div>
               <Navigation />
               <UserProfile />
@@ -137,10 +143,13 @@ const Sidebar = () => {
 
       {/* Desktop sidebar - always visible on desktop */}
       <aside className="hidden md:flex flex-col w-64 border-r border-neutral-200 bg-white">
-        <div className="p-4 border-b border-neutral-200">
-          <h1 className="text-xl font-semibold text-neutral-800">Applicant Screening</h1>
+        <div className="p-4 border-b border-neutral-200 flex justify-between items-center">
+          <h1 className="text-xl font-semibold text-neutral-800">{t('common.app_name')}</h1>
         </div>
         <Navigation />
+        <div className="py-2 px-4 border-t border-neutral-200">
+          <LanguageSwitcher />
+        </div>
         <UserProfile />
       </aside>
     </>
