@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import AssignTestModal from "@/components/candidates/AssignTestModal";
 
 interface TestSession {
@@ -90,6 +90,20 @@ const CandidateDetails = () => {
       default:
         return "outline";
     }
+  };
+
+  // Handle manual refresh of sessions
+  const handleRefreshSessions = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["/api/candidates", candidateId, "sessions"],
+    });
+  };
+
+  // Handle modal close with refresh
+  const handleCloseAssignModal = () => {
+    setIsAssignModalOpen(false);
+    // Force refetch the sessions data when modal is closed
+    handleRefreshSessions();
   };
 
   // Handle copy link function
@@ -200,11 +214,20 @@ const CandidateDetails = () => {
 
         {/* Test Sessions Card */}
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Test History</CardTitle>
-            <CardDescription>
-              View all tests assigned to this candidate
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Test History</CardTitle>
+              <CardDescription>
+                View all tests assigned to this candidate
+              </CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefreshSessions}
+            >
+              Refresh
+            </Button>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="active" className="w-full">
@@ -366,7 +389,7 @@ const CandidateDetails = () => {
       {/* Assign test modal */}
       <AssignTestModal
         isOpen={isAssignModalOpen}
-        onClose={() => setIsAssignModalOpen(false)}
+        onClose={handleCloseAssignModal}
         candidate={candidate}
       />
     </div>
