@@ -6,10 +6,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -26,19 +24,21 @@ import {
 } from "@/components/ui/form";
 import SearchInput from "@/components/ui/SearchInput";
 import CandidatesTable from "@/components/candidates/CandidatesTable";
-
-const candidateFormSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  email: z.string().email("Invalid email address"),
-  position: z.string().optional(),
-});
-
-type CandidateFormValues = z.infer<typeof candidateFormSchema>;
+import { useTranslation } from "react-i18next";
 
 const Candidates = () => {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+
+  const candidateFormSchema = z.object({
+    name: z.string().min(3, t("validation.name_min_length", "Name must be at least 3 characters")),
+    email: z.string().email(t("validation.invalid_email", "Invalid email address")),
+    position: z.string().optional(),
+  });
+
+  type CandidateFormValues = z.infer<typeof candidateFormSchema>;
 
   const form = useForm<CandidateFormValues>({
     resolver: zodResolver(candidateFormSchema),
@@ -57,16 +57,16 @@ const Candidates = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/candidates"] });
       toast({
-        title: "Success",
-        description: "Candidate added successfully",
+        title: t("common.success"),
+        description: t("candidates.candidate_added_successfully", "Candidate added successfully"),
       });
       setIsModalOpen(false);
       form.reset();
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to add candidate: ${error}`,
+        title: t("common.error"),
+        description: t("candidates.failed_to_add", "Failed to add candidate") + `: ${error}`,
         variant: "destructive",
       });
     },
@@ -79,10 +79,10 @@ const Candidates = () => {
   return (
     <div className="p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold text-neutral-800">Candidates</h1>
+        <h1 className="text-2xl font-bold text-neutral-800">{t("common.candidates")}</h1>
         <Button onClick={() => setIsModalOpen(true)}>
           <UserPlus className="h-5 w-5 mr-2" />
-          Add Candidate
+          {t("candidates.add_candidate")}
         </Button>
       </div>
 
@@ -90,7 +90,7 @@ const Candidates = () => {
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Search candidates by name, email or position"
+          placeholder={t("candidates.search_placeholder", "Search candidates by name, email or position")}
           className="max-w-md"
         />
       </div>
@@ -101,7 +101,7 @@ const Candidates = () => {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Candidate</DialogTitle>
+            <DialogTitle>{t("candidates.add_candidate")}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -110,7 +110,7 @@ const Candidates = () => {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>{t("candidates.name")}</FormLabel>
                     <FormControl>
                       <Input placeholder="John Doe" {...field} />
                     </FormControl>
@@ -124,7 +124,7 @@ const Candidates = () => {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{t("candidates.email")}</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
@@ -142,7 +142,7 @@ const Candidates = () => {
                 name="position"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Position (Optional)</FormLabel>
+                    <FormLabel>{t("candidates.position")} ({t("common.optional", "Optional")})</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Frontend Developer"
@@ -161,15 +161,15 @@ const Candidates = () => {
                   variant="outline"
                   onClick={() => setIsModalOpen(false)}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   type="submit"
                   disabled={createCandidateMutation.isPending}
                 >
                   {createCandidateMutation.isPending
-                    ? "Adding..."
-                    : "Add Candidate"}
+                    ? t("candidates.adding", "Adding...")
+                    : t("candidates.add_candidate")}
                 </Button>
               </div>
             </form>
