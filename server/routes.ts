@@ -549,6 +549,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User management routes - Administrator only
+  app.get("/api/users", requireRole("admin"), async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/users/:id", requireRole("admin"), async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      // Не разрешаем изменять пароль через этот маршрут
+      const { password, ...userData } = req.body;
+      
+      const updatedUser = await storage.updateUser(id, userData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.post("/api/users/:id/reset-password", requireRole("admin"), async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { newPassword } = req.body;
+      
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
+        return res.status(400).json({ 
+          message: "New password must be at least 8 characters" 
+        });
+      }
+      
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const hashedPassword = await hashPassword(newPassword);
+      const updatedUser = await storage.updateUser(id, { password: hashedPassword });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to reset password" });
+      }
+      
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Change password route - for users to change their own password
+  app.post("/api/change-password", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ 
+          message: "Current password and new password are required" 
+        });
+      }
+      
+      if (typeof newPassword !== 'string' || newPassword.length < 8) {
+        return res.status(400).json({ 
+          message: "New password must be at least 8 characters" 
+        });
+      }
+      
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Импортируем функцию сравнения паролей
+      const { comparePasswords } = require('./auth');
+      
+      // Сравниваем текущий пароль
+      const passwordsMatch = await comparePasswords(currentPassword, user.password);
+      if (!passwordsMatch) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Хешируем новый пароль
+      const hashedPassword = await hashPassword(newPassword);
+      const updatedUser = await storage.updateUser(userId, { password: hashedPassword });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update password" });
+      }
+      
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
