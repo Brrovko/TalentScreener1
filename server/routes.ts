@@ -456,16 +456,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         processedAnswers.push(candidateAnswer);
       }
       
-      // Update the session with the score and mark as completed
+      // Get test for passing score threshold
+      const test = await storage.getTest(session.testId);
+      if (!test) {
+        return res.status(404).json({ message: "Test not found" });
+      }
+      
+      // Calculate total possible score and percentage
+      const totalPossibleScore = questions.reduce((sum, q) => sum + q.points, 0);
+      const percentScore = totalPossibleScore > 0 
+        ? Math.round((totalScore / totalPossibleScore) * 100) 
+        : 0;
+      
+      // Check if the candidate passed the test based on the threshold
+      const passed = percentScore >= (test.passingScore || 70);
+      
+      // Update the session with the score, percentage, pass status and mark as completed
       const updatedSession = await storage.updateTestSession(session.id, {
         status: "completed",
         completedAt: new Date(),
-        score: totalScore
+        score: totalScore,
+        percentScore: percentScore,
+        passed: passed
       });
       
       res.json({
         score: totalScore,
-        totalPossibleScore: questions.reduce((sum, q) => sum + q.points, 0),
+        totalPossibleScore: totalPossibleScore,
+        percentScore: percentScore,
+        passed: passed,
+        passingThreshold: test.passingScore || 70,
         session: updatedSession
       });
     } catch (error) {

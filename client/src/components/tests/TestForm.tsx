@@ -36,6 +36,7 @@ const testFormSchema = z.object({
   description: z.string().optional(),
   category: z.enum(CATEGORIES as unknown as [string, ...string[]]),
   timeLimit: z.number().min(0).optional(),
+  passingScore: z.number().min(0).max(100).default(70),
   isActive: z.boolean().default(true),
 });
 
@@ -52,6 +53,7 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
       description: test?.description || "",
       category: (test?.category as any) || "Frontend",
       timeLimit: test?.timeLimit || 0,
+      passingScore: test?.passingScore || 70,
       isActive: test?.isActive !== undefined ? test.isActive : true,
     },
   });
@@ -195,6 +197,29 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
                     {...field}
                     onChange={(e) => {
                       const value = e.target.value === "" ? undefined : parseInt(e.target.value);
+                      field.onChange(value);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="passingScore"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Passing Score (%)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
                       field.onChange(value);
                     }}
                   />

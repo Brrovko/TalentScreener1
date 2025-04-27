@@ -28,6 +28,7 @@ export const tests = pgTable("tests", {
   timeLimit: integer("time_limit"),
   isActive: boolean("is_active").notNull().default(true),
   questionCount: integer("question_count").notNull().default(0),
+  passingScore: integer("passing_score").notNull().default(70), // Проходной балл в процентах
 });
 
 export const insertTestSchema = createInsertSchema(tests).pick({
@@ -37,6 +38,7 @@ export const insertTestSchema = createInsertSchema(tests).pick({
   createdBy: true,
   timeLimit: true,
   isActive: true,
+  passingScore: true,
 });
 
 // Question schema
@@ -86,6 +88,8 @@ export const testSessions = pgTable("test_sessions", {
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   score: integer("score"),
+  percentScore: integer("percent_score"), // Процент правильных ответов
+  passed: boolean("passed"), // Прошел ли тест (true/false)
   expiresAt: timestamp("expires_at"),
 });
 
