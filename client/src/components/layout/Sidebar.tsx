@@ -6,17 +6,21 @@ import {
   Users, 
   Settings, 
   Menu, 
-  X 
+  X,
+  LogOut
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/components/ui/language-switcher";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
 
 const Sidebar = () => {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const { t } = useTranslation();
+  const { user, logoutMutation } = useAuth();
 
   const isActive = (path: string): boolean => {
     if (path === "/" && location === "/") return true;
@@ -74,19 +78,52 @@ const Sidebar = () => {
   );
 
   // User profile section
-  const UserProfile = () => (
-    <div className="p-4 border-t border-neutral-200">
-      <div className="flex items-center text-sm">
-        <div className="w-8 h-8 rounded-full bg-primary-500 text-white flex items-center justify-center mr-3">
-          <span>JD</span>
+  const UserProfile = () => {
+    if (!user) return null;
+    
+    // Get initials from the user's full name
+    const initials = user.fullName
+      .split(' ')
+      .map(name => name[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+    
+    const handleLogout = () => {
+      logoutMutation.mutate();
+    };
+    
+    // Role labels for display
+    const roleLabels = {
+      admin: "Администратор",
+      recruiter: "Рекрутер",
+      interviewer: "Интервьюер"
+    };
+    
+    return (
+      <div className="p-4 border-t border-neutral-200">
+        <div className="flex items-center text-sm mb-3">
+          <div className="w-8 h-8 rounded-full bg-primary-500 text-white flex items-center justify-center mr-3">
+            <span>{initials}</span>
+          </div>
+          <div className="flex-1">
+            <p className="font-medium">{user.fullName}</p>
+            <p className="text-neutral-500 text-xs">{roleLabels[user.role] || user.role}</p>
+          </div>
         </div>
-        <div>
-          <p className="font-medium">{t('common.admin')}</p>
-          <p className="text-neutral-500 text-xs">{t('common.hr_manager')}</p>
-        </div>
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="w-full flex justify-center items-center gap-2"
+          onClick={handleLogout}
+          disabled={logoutMutation.isPending}
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Выйти</span>
+        </Button>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Navigation items
   const Navigation = () => (
