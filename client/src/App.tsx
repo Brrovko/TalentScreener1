@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,7 +10,28 @@ import Candidates from "@/pages/candidates";
 import Settings from "@/pages/settings";
 import Sidebar from "@/components/layout/Sidebar";
 
+// Динамический маршрут для компонента прохождения теста
+const TakeTestPage = (props: any) => {
+  const TakeTest = require("../src/pages/take-test").default;
+  return <TakeTest {...props} />;
+};
+
 function Router() {
+  const [location] = useLocation();
+  const isTakeTestRoute = location.startsWith("/take-test");
+
+  // Only show the sidebar for admin pages, not for test-taking pages
+  if (isTakeTestRoute) {
+    return (
+      <main className="h-screen overflow-y-auto bg-white">
+        <Switch>
+          <Route path="/take-test/:token" component={TakeTest} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-neutral-50">
       <Sidebar />
