@@ -23,17 +23,16 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
             set -e
 
-            if [ ! -d "${{ secrets.SSH_PROJECT_PATH }}/.git" ]; then
-              echo "Проект не найден. Клонируем репозиторий..."
-              git clone https://github.com/${{ github.repository }} ${{ secrets.SSH_PROJECT_PATH }}
-              cd ${{ secrets.SSH_PROJECT_PATH }}
-              npm install
-            else
-              echo "Проект найден. Обновляем..."
-              cd ${{ secrets.SSH_PROJECT_PATH }}
-              npm install
-              git pull origin main
-            fi
+            cd ${{ secrets.SSH_PROJECT_PATH }} || (
+            echo "Проект не найден. Клонируем репозиторий..."
+            git clone https://github.com/${{ github.repository }} ${{ secrets.SSH_PROJECT_PATH }}
+            cd ${{ secrets.SSH_PROJECT_PATH }}
+            npm install)
+            
+            echo "Проект найден. Обновляем..."
+            git fetch --all
+            git reset --hard origin/main
+            npm install --no-save
 
             if [ -f app.pid ]; then
               echo "Останавливаем старый процесс..."
