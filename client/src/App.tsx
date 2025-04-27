@@ -10,11 +10,8 @@ import Candidates from "@/pages/candidates";
 import Settings from "@/pages/settings";
 import Sidebar from "@/components/layout/Sidebar";
 
-// Динамический маршрут для компонента прохождения теста
-const TakeTestPage = (props: any) => {
-  const TakeTest = require("../src/pages/take-test").default;
-  return <TakeTest {...props} />;
-};
+// Импортируем компонент прохождения теста
+import TakeTestPage from "./pages/take-test";
 
 function Router() {
   const [location] = useLocation();
