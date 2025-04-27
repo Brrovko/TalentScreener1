@@ -72,9 +72,11 @@ const AssignTestModal = ({ isOpen, onClose, candidate }: AssignTestModalProps) =
       });
       
       // Refetch sessions data
-      queryClient.invalidateQueries({
-        queryKey: ["/api/tests/sessions"],
-      });
+      if (candidate) {
+        queryClient.invalidateQueries({
+          queryKey: ["/api/candidates", candidate.id, "sessions"],
+        });
+      }
     },
     onError: () => {
       toast({
