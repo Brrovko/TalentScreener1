@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, CheckCircle, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import AssignTestModal from "./AssignTestModal";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const CandidatesTable = () => {
   const [filter, setFilter] = useState("");
@@ -25,9 +26,37 @@ const CandidatesTable = () => {
     queryKey: ["/api/candidates"],
   });
 
-  // Get test sessions to display status
-  const { data: allTestSessions = [] } = useQuery<any[]>({
-    queryKey: ["/api/tests/sessions"],
+  // Get test sessions for each candidate
+  const { data: allCandidatesSessions = {} } = useQuery<Record<number, any[]>>({
+    queryKey: ["/api/candidates/sessions"],
+    queryFn: async () => {
+      // Создаем объект, где ключ - это ID кандидата, а значение - массив его сессий
+      const sessionsData: Record<number, any[]> = {};
+      
+      // Получаем сессии для каждого кандидата
+      await Promise.all(
+        candidates.map(async (candidate) => {
+          try {
+            const response = await fetch(`/api/candidates/${candidate.id}/sessions`);
+            if (response.ok) {
+              const sessions = await response.json();
+              sessionsData[candidate.id] = sessions;
+            }
+          } catch (error) {
+            console.error(`Failed to fetch sessions for candidate ${candidate.id}:`, error);
+            sessionsData[candidate.id] = [];
+          }
+        })
+      );
+      
+      return sessionsData;
+    },
+    enabled: candidates.length > 0,
+  });
+  
+  // Получаем данные о тестах для их имен
+  const { data: tests = [] } = useQuery<any[]>({
+    queryKey: ["/api/tests"],
   });
 
   const filteredCandidates = useMemo(() => {
@@ -41,25 +70,43 @@ const CandidatesTable = () => {
     });
   }, [candidates, filter]);
 
-  // Function to get candidate status based on test sessions
-  const getCandidateStatus = (candidateId: number) => {
-    const sessions = allTestSessions.filter(
-      (session) => session.candidateId === candidateId
-    );
+  // Функция для получения информации о тестах кандидата
+  const getCandidateTestInfo = (candidateId: number) => {
+    const sessions = allCandidatesSessions[candidateId] || [];
     
-    if (sessions.length === 0) return "No tests";
-    
-    if (sessions.some((session) => session.status === "completed")) {
-      return "Completed";
+    if (sessions.length === 0) {
+      return {
+        hasTests: false,
+        status: "No tests",
+        sessions: [],
+      };
     }
     
-    if (sessions.some((session) => session.status === "in_progress")) {
-      return "In progress";
-    }
+    const hasCompletedTests = sessions.some((session: any) => session.status === "completed");
+    const hasInProgressTests = sessions.some((session: any) => session.status === "in_progress");
     
-    return "Pending";
+    let status = "Pending";
+    if (hasInProgressTests) status = "In progress";
+    if (hasCompletedTests) status = "Completed";
+    
+    // Добавляем информацию о тесте к каждой сессии
+    const sessionsWithTestInfo = sessions.map((session: any) => {
+      const test = tests.find((t: any) => t.id === session.testId);
+      return {
+        ...session,
+        testName: test?.name || "Unknown Test",
+        testPassingScore: test?.passingScore || 70,
+      };
+    });
+    
+    return {
+      hasTests: true,
+      status,
+      sessions: sessionsWithTestInfo,
+    };
   };
 
+  // Получает вариант стиля для статуса
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "Completed":
@@ -71,6 +118,12 @@ const CandidatesTable = () => {
       default:
         return "outline";
     }
+  };
+  
+  // Получает вариант стиля для результата теста (Pass/Fail)
+  const getResultBadgeVariant = (passed: boolean | undefined): "default" | "secondary" | "outline" | "destructive" | "success" => {
+    if (passed === undefined) return "outline";
+    return passed ? "success" : "destructive";
   };
 
   const handleAssignTest = (candidate: Candidate) => {
@@ -123,7 +176,7 @@ const CandidatesTable = () => {
               </TableRow>
             ) : (
               filteredCandidates.map((candidate) => {
-                const status = getCandidateStatus(candidate.id);
+                const testInfo = getCandidateTestInfo(candidate.id);
                 return (
                   <TableRow key={candidate.id} className="hover:bg-neutral-50">
                     <TableCell className="font-medium">
@@ -139,9 +192,56 @@ const CandidatesTable = () => {
                       })}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusBadgeVariant(status)}>
-                        {status}
-                      </Badge>
+                      {!testInfo.hasTests ? (
+                        <Badge variant="outline">No tests</Badge>
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={getStatusBadgeVariant(testInfo.status)}>
+                                  {testInfo.status}
+                                </Badge>
+                                <div className="text-xs text-gray-500">
+                                  {testInfo.sessions.length} test{testInfo.sessions.length !== 1 ? 's' : ''}
+                                </div>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm p-0">
+                              <div className="p-2">
+                                <div className="font-semibold mb-2">Assigned Tests:</div>
+                                <div className="space-y-2">
+                                  {testInfo.sessions.map((session) => (
+                                    <div key={session.id} className="flex items-center justify-between">
+                                      <div>
+                                        <div className="font-medium">{session.testName}</div>
+                                        <div className="text-sm text-gray-500">
+                                          Status: {session.status}
+                                        </div>
+                                      </div>
+                                      {session.status === "completed" && (
+                                        <div className="flex items-center gap-2">
+                                          <div className="text-sm">
+                                            {session.percentScore || 0}%
+                                          </div>
+                                          <Badge variant={getResultBadgeVariant(session.passed)}>
+                                            {session.passed ? "Pass" : "Fail"}
+                                          </Badge>
+                                          {session.passed ? (
+                                            <CheckCircle className="h-4 w-4 text-green-500" />
+                                          ) : (
+                                            <XCircle className="h-4 w-4 text-red-500" />
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
