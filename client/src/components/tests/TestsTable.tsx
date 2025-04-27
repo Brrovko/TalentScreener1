@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Edit } from "lucide-react";
+import { Edit, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import { Test } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TestsTableProps {
   onEdit: (test: Test) => void;
@@ -22,6 +23,7 @@ interface TestsTableProps {
 const TestsTable = ({ onEdit }: TestsTableProps) => {
   const { toast } = useToast();
   const [filter, setFilter] = useState("");
+  const isMobile = useIsMobile();
 
   const { data: tests = [], isLoading } = useQuery<Test[]>({
     queryKey: ["/api/tests"],
@@ -74,6 +76,45 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
       });
   }, [tests, filter]);
 
+  // Mobile card view for a test
+  const TestCard = ({ test }: { test: Test }) => {
+    return (
+      <div className="p-4 border-b border-neutral-200 last:border-b-0">
+        <div className="flex justify-between items-start mb-2">
+          <div className="font-medium">{test.name}</div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(test)}
+            className="h-8 ml-2 -mt-1"
+          >
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Edit</span>
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+          <div>
+            <span className="text-neutral-500">Category:</span>{" "}
+            <span className="text-neutral-700">{test.category}</span>
+          </div>
+          <div>
+            <span className="text-neutral-500">Questions:</span>{" "}
+            <span className="text-neutral-700">{test.questionCount}</span>
+          </div>
+        </div>
+        
+        <Badge
+          className="cursor-pointer"
+          variant={test.isActive ? "success" : "outline"}
+          onClick={() => toggleTestStatus(test)}
+        >
+          {test.isActive ? "Active" : "Archived"}
+        </Badge>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
       <div className="px-4 py-3">
@@ -85,60 +126,81 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
           onChange={(e) => setFilter(e.target.value)}
         />
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-neutral-50 hover:bg-neutral-50">
-            <TableHead>Test Name</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Questions</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      
+      {/* Mobile view */}
+      {isMobile ? (
+        <div className="divide-y divide-neutral-200">
           {isLoading ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-8">
-                Loading tests...
-              </TableCell>
-            </TableRow>
+            <div className="text-center py-8">Loading tests...</div>
           ) : filteredTests.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-8">
-                {filter
-                  ? "No tests match your filter criteria"
-                  : "No tests available"}
-              </TableCell>
-            </TableRow>
+            <div className="text-center py-8">
+              {filter
+                ? "No tests match your filter criteria"
+                : "No tests available"}
+            </div>
           ) : (
             filteredTests.map((test) => (
-              <TableRow key={test.id} className="hover:bg-neutral-50">
-                <TableCell className="font-medium">{test.name}</TableCell>
-                <TableCell>{test.category}</TableCell>
-                <TableCell>{test.questionCount}</TableCell>
-                <TableCell>
-                  <Badge
-                    className="cursor-pointer"
-                    variant={test.isActive ? "success" : "outline"}
-                    onClick={() => toggleTestStatus(test)}
-                  >
-                    {test.isActive ? "Active" : "Archived"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit(test)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <TestCard key={test.id} test={test} />
             ))
           )}
-        </TableBody>
-      </Table>
+        </div>
+      ) : (
+        /* Desktop table view */
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-neutral-50 hover:bg-neutral-50">
+              <TableHead>Test Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Questions</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8">
+                  Loading tests...
+                </TableCell>
+              </TableRow>
+            ) : filteredTests.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8">
+                  {filter
+                    ? "No tests match your filter criteria"
+                    : "No tests available"}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredTests.map((test) => (
+                <TableRow key={test.id} className="hover:bg-neutral-50">
+                  <TableCell className="font-medium">{test.name}</TableCell>
+                  <TableCell>{test.category}</TableCell>
+                  <TableCell>{test.questionCount}</TableCell>
+                  <TableCell>
+                    <Badge
+                      className="cursor-pointer"
+                      variant={test.isActive ? "success" : "outline"}
+                      onClick={() => toggleTestStatus(test)}
+                    >
+                      {test.isActive ? "Active" : "Archived"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit(test)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 };
