@@ -1,0 +1,97 @@
+const translation = {
+  common: {
+    dashboard: "Панель управления",
+    tests: "Тесты",
+    candidates: "Кандидаты",
+    settings: "Настройки",
+    admin: "Администратор",
+    hr_manager: "HR менеджер",
+    loading: "Загрузка...",
+    filter: "Фильтр",
+    no_data: "Нет данных",
+    no_filter_results: "Нет результатов по вашему фильтру",
+    actions: "Действия",
+    edit: "Редактировать",
+    delete: "Удалить",
+    save: "Сохранить",
+    cancel: "Отмена",
+    success: "Успех",
+    error: "Ошибка",
+    app_name: "Система оценки кандидатов"
+  },
+  dashboard: {
+    recent_activity: "Недавняя активность",
+    statistics: "Статистика",
+    total_tests: "Всего тестов",
+    active_tests: "Активные тесты",
+    total_candidates: "Всего кандидатов",
+    pending_sessions: "Ожидающие сессии",
+    completed_sessions: "Завершенные сессии",
+    view_all: "Посмотреть все"
+  },
+  candidates: {
+    name: "Имя",
+    email: "Email",
+    position: "Должность",
+    status: "Статус",
+    no_position: "Нет должности",
+    assign_test: "Назначить тест",
+    no_tests: "Нет тестов",
+    test_results: "Результаты теста",
+    test_name: "Название теста",
+    score: "Счёт",
+    pass: "Сдан",
+    fail: "Не сдан",
+    in_progress: "В процессе",
+    pending: "Ожидает",
+    completed: "Завершено",
+    passed: "Сдано",
+    failed: "Не сдано",
+    mixed_results: "Смешанные результаты",
+    add_candidate: "Добавить кандидата",
+    edit_candidate: "Редактировать кандидата"
+  },
+  tests: {
+    test_name: "Название теста",
+    category: "Категория",
+    questions: "Вопросы",
+    status: "Статус",
+    active: "Активен",
+    archived: "Архивирован",
+    create_test: "Создать тест",
+    edit_test: "Редактировать тест",
+    description: "Описание",
+    time_limit: "Ограничение по времени",
+    minutes: "минут",
+    passing_score: "Проходной балл",
+    assign_to_candidate: "Назначить кандидату",
+    expires_at: "Истекает",
+    question_count: "Количество вопросов",
+    manage_questions: "Управление вопросами",
+    add_question: "Добавить вопрос",
+    edit_question: "Редактировать вопрос",
+    no_questions: "Нет вопросов. Добавьте вопросы для этого теста."
+  },
+  question_types: {
+    single_choice: "Один вариант",
+    multiple_choice: "Несколько вариантов",
+    true_false: "Верно/Неверно",
+    short_answer: "Короткий ответ",
+    essay: "Эссе"
+  },
+  settings: {
+    profile: "Профиль",
+    security: "Безопасность",
+    notifications: "Уведомления",
+    language: "Язык",
+    select_language: "Выберите язык",
+    dark_mode: "Темный режим",
+    save_changes: "Сохранить изменения"
+  },
+  languages: {
+    ru: "Русский",
+    en: "Английский"
+  }
+};
+
+export default translation;
