@@ -38,9 +38,9 @@ const AuthPage = () => {
   const [location, setLocation] = useLocation();
   
   useEffect(() => {
-    // Перенаправить на главную, если пользователь уже вошел в систему
+    // Перенаправить на дашборд, если пользователь уже вошел в систему
     if (user) {
-      setLocation("/");
+      setLocation("/dashboard");
     }
   }, [user, setLocation]);
 

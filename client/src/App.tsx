@@ -21,17 +21,7 @@ import TakeTestPage from "./pages/take-test";
 function Router() {
   const [location] = useLocation();
   const isTakeTestRoute = location.startsWith("/take-test");
-  const isAuthRoute = location === "/auth";
   const isMobile = useIsMobile();
-
-  // Отображение страницы авторизации без сайдбара
-  if (isAuthRoute) {
-    return (
-      <Switch>
-        <Route path="/auth" component={AuthPage} />
-      </Switch>
-    );
-  }
 
   // Отображение страницы прохождения теста без сайдбара (для кандидатов)
   if (isTakeTestRoute) {
@@ -45,43 +35,51 @@ function Router() {
     );
   }
 
-  // Основной интерфейс для авторизованных пользователей
   return (
-    <div className="flex flex-col md:flex-row min-h-screen overflow-hidden bg-neutral-50">
-      {/* Sidebar will handle its own visibility on mobile/desktop */}
-      <Sidebar />
+    <Switch>
+      {/* Главная страница - страница авторизации */}
+      <Route path="/" component={AuthPage} />
       
-      {/* Main content area, full width on mobile, partial width on desktop */}
-      <main className="flex-1 overflow-y-auto pt-0 md:pt-4 pb-20 md:pb-4">
-        <div className={`container mx-auto px-4 ${isMobile ? 'max-w-full' : 'max-w-6xl'}`}>
-          <Switch>
-            <ProtectedRoute path="/" component={Dashboard} />
-            <ProtectedRoute path="/dashboard" component={Dashboard} />
-            <ProtectedRoute 
-              path="/tests" 
-              component={Tests} 
-              requiredRoles={["admin", "recruiter", "interviewer"]} 
-            />
-            <ProtectedRoute 
-              path="/candidates" 
-              component={Candidates} 
-              requiredRoles={["admin", "recruiter"]} 
-            />
-            <ProtectedRoute 
-              path="/candidates/:id" 
-              component={CandidateDetails}
-              requiredRoles={["admin", "recruiter", "interviewer"]} 
-            />
-            <ProtectedRoute 
-              path="/settings" 
-              component={Settings} 
-              requiredRoles={["admin"]} 
-            />
-            <Route component={NotFound} />
-          </Switch>
+      {/* Административная панель и защищенные маршруты */}
+      <Route path="/dashboard*">
+        <div className="flex flex-col md:flex-row min-h-screen overflow-hidden bg-neutral-50">
+          {/* Sidebar will handle its own visibility on mobile/desktop */}
+          <Sidebar />
+          
+          {/* Main content area, full width on mobile, partial width on desktop */}
+          <main className="flex-1 overflow-y-auto pt-0 md:pt-4 pb-20 md:pb-4">
+            <div className={`container mx-auto px-4 ${isMobile ? 'max-w-full' : 'max-w-6xl'}`}>
+              <Switch>
+                <ProtectedRoute path="/dashboard" component={Dashboard} />
+                <ProtectedRoute 
+                  path="/dashboard/tests" 
+                  component={Tests} 
+                  requiredRoles={["admin", "recruiter", "interviewer"]} 
+                />
+                <ProtectedRoute 
+                  path="/dashboard/candidates" 
+                  component={Candidates} 
+                  requiredRoles={["admin", "recruiter"]} 
+                />
+                <ProtectedRoute 
+                  path="/dashboard/candidates/:id" 
+                  component={CandidateDetails}
+                  requiredRoles={["admin", "recruiter", "interviewer"]} 
+                />
+                <ProtectedRoute 
+                  path="/dashboard/settings" 
+                  component={Settings} 
+                  requiredRoles={["admin"]} 
+                />
+                <Route component={NotFound} />
+              </Switch>
+            </div>
+          </main>
         </div>
-      </main>
-    </div>
+      </Route>
+      
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 

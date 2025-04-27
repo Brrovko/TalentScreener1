@@ -23,8 +23,8 @@ const Sidebar = () => {
   const { user, logoutMutation } = useAuth();
 
   const isActive = (path: string): boolean => {
-    if (path === "/" && location === "/") return true;
-    if (path === "/") return false;
+    if (path === "/dashboard" && location === "/dashboard") return true;
+    if (path === "/dashboard") return false;
     return location.startsWith(path);
   };
 
@@ -34,9 +34,7 @@ const Sidebar = () => {
 
   // Function to create navigation item with consistent styling
   const NavItem = ({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) => {
-    const active = to === "/dashboard" 
-      ? isActive("/dashboard") || isActive("/") 
-      : isActive(to);
+    const active = isActive(to);
     
     const handleMobileNavClick = () => {
       if (isMobile) {
@@ -135,17 +133,17 @@ const Sidebar = () => {
           label={t('common.dashboard')} 
         />
         <NavItem 
-          to="/tests" 
+          to="/dashboard/tests" 
           icon={<ClipboardList className="h-5 w-5 mr-3" />} 
           label={t('common.tests')} 
         />
         <NavItem 
-          to="/candidates" 
+          to="/dashboard/candidates" 
           icon={<Users className="h-5 w-5 mr-3" />} 
           label={t('common.candidates')} 
         />
         <NavItem 
-          to="/settings" 
+          to="/dashboard/settings" 
           icon={<Settings className="h-5 w-5 mr-3" />} 
           label={t('common.settings')} 
         />
