@@ -2,13 +2,25 @@ import { pgTable, text, serial, integer, boolean, timestamp, json, primaryKey } 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// User roles enum
+export const USER_ROLES = [
+  "admin",   // Can do everything
+  "recruiter", // Can create and manage tests, candidates, and view results
+  "interviewer", // Can only view and evaluate tests
+] as const;
+
+export type UserRole = typeof USER_ROLES[number];
+
 // User schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
-  role: text("role").notNull().default("hr"),
+  role: text("role", { enum: USER_ROLES }).notNull().default("recruiter"),
+  email: text("email").notNull().unique(),
+  active: boolean("active").notNull().default(true),
+  lastLogin: timestamp("last_login"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -16,6 +28,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   fullName: true,
   role: true,
+  email: true,
+  active: true,
 });
 
 // Test schema

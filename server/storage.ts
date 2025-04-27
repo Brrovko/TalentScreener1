@@ -12,7 +12,11 @@ export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
+  updateUserLastLogin(id: number): Promise<void>;
 
   // Test operations
   getAllTests(): Promise<Test[]>;
@@ -97,7 +101,9 @@ export class MemStorage implements IStorage {
       username: "admin",
       password: "admin123",
       fullName: "Admin User",
-      role: "admin"
+      role: "admin",
+      email: "admin@example.com",
+      active: true
     });
     
     // Add sample tests
@@ -252,12 +258,48 @@ export class MemStorage implements IStorage {
       (user) => user.username === username,
     );
   }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email,
+    );
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
-    const user: User = { ...insertUser, id };
+    const role = insertUser.role || "recruiter";
+    const active = insertUser.active !== undefined ? insertUser.active : true;
+    
+    const user: User = { 
+      ...insertUser, 
+      id,
+      role,
+      active,
+      lastLogin: null 
+    };
     this.users.set(id, user);
     return user;
+  }
+  
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, ...userData };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserLastLogin(id: number): Promise<void> {
+    const user = this.users.get(id);
+    if (user) {
+      user.lastLogin = new Date();
+      this.users.set(id, user);
+    }
   }
 
   // Test operations
@@ -409,6 +451,12 @@ export class MemStorage implements IStorage {
       ...insertSession, 
       id, 
       status: "pending",
+      startedAt: null,
+      completedAt: null,
+      score: null,
+      percentScore: null,
+      passed: null,
+      expiresAt: insertSession.expiresAt || null
     };
     this.testSessions.set(id, session);
     return session;
