@@ -96,15 +96,8 @@ export class MemStorage implements IStorage {
     this.candidateId = 1;
     this.sessionId = 1;
     
-    // Add default admin user
-    this.createUser({
-      username: "admin",
-      password: "admin123",
-      fullName: "Admin User",
-      role: "admin",
-      email: "admin@example.com",
-      active: true
-    });
+    // Note: We're not adding the admin user here anymore.
+    // It will now be created in server/index.ts with properly hashed password
     
     // Add sample tests
     this.createTest({
