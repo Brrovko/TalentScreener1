@@ -5,11 +5,12 @@ import {
   insertTestSchema, 
   insertQuestionSchema, 
   insertCandidateSchema,
-  insertTestSessionSchema
+  insertTestSessionSchema,
+  UserRole
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { setupAuth, requireRole } from "./auth";
+import { setupAuth, requireRole, hashPassword } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication

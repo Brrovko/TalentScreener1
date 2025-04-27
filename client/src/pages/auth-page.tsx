@@ -18,7 +18,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { ClipboardList, ShieldCheck } from "lucide-react";
+import { 
+  ClipboardList, 
+  ShieldCheck, 
+  BarChart, 
+  Users, 
+  CheckCircle, 
+  Lock 
+} from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().min(1, { message: "Имя пользователя обязательно" }),
@@ -50,91 +57,130 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl w-full space-y-8 flex h-[600px] shadow-lg rounded-xl overflow-hidden">
-        {/* Left column - Login/Register form */}
-        <div className="w-full md:w-1/2 bg-white p-8 flex flex-col justify-center">
-          <div className="text-center mb-6">
-            <h2 className="text-3xl font-bold text-gray-900">
-              Система тестирования кандидатов
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Войдите в свой аккаунт для доступа
-            </p>
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-1 mb-6">
-              <TabsTrigger value="login">Вход в систему</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login" className="space-y-4">
-              <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                  <FormField
-                    control={loginForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Имя пользователя</FormLabel>
-                        <FormControl>
-                          <Input placeholder="admin" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={loginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Пароль</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={loginMutation.isPending}
-                  >
-                    {loginMutation.isPending ? "Вход..." : "Войти"}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-          </Tabs>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl w-full">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-extrabold text-primary-700 mb-4">
+            Система профессионального тестирования
+          </h1>
+          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+            Современная платформа для оценки навыков кандидатов и управления процессом подбора персонала
+          </p>
         </div>
 
-        {/* Right column - Hero section */}
-        <div className="hidden md:block md:w-1/2 bg-primary text-primary-foreground p-8 flex flex-col justify-center">
-          <div className="space-y-6">
-            <div className="flex items-center space-x-3">
-              <ClipboardList size={32} />
-              <h3 className="text-xl font-bold">Управление тестированием</h3>
-            </div>
-            <p>
-              Создавайте разнообразные тесты, назначайте их кандидатам и следите за результатами в реальном времени.
-            </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Основные преимущества платформы */}
+          <div className="col-span-2 bg-white p-8 rounded-2xl shadow-md">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-primary-50 p-6 rounded-xl">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mr-4">
+                    <ClipboardList className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-primary-800">Гибкие тесты</h3>
+                </div>
+                <p className="text-slate-700">
+                  Создавайте тесты с различными типами вопросов, устанавливайте времянные ограничения и критерии прохождения
+                </p>
+              </div>
 
-            <div className="flex items-center space-x-3">
-              <ShieldCheck size={32} />
-              <h3 className="text-xl font-bold">Ролевая модель</h3>
+              <div className="bg-primary-50 p-6 rounded-xl">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mr-4">
+                    <BarChart className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-primary-800">Аналитика</h3>
+                </div>
+                <p className="text-slate-700">
+                  Детальная статистика по результатам тестирования и визуализация данных для эффективного принятия решений
+                </p>
+              </div>
+
+              <div className="bg-primary-50 p-6 rounded-xl">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mr-4">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-primary-800">Управление кандидатами</h3>
+                </div>
+                <p className="text-slate-700">
+                  Ведение базы кандидатов, отслеживание истории тестирований и управление доступом к тестам
+                </p>
+              </div>
+
+              <div className="bg-primary-50 p-6 rounded-xl">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mr-4">
+                    <ShieldCheck className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-primary-800">Ролевая модель</h3>
+                </div>
+                <p className="text-slate-700">
+                  Разграничение прав доступа между администраторами, рекрутерами и интервьюерами для эффективного разделения обязанностей
+                </p>
+              </div>
             </div>
-            <p>
-              В системе предусмотрены роли с различными правами доступа:
-            </p>
-            <ul className="list-disc pl-6 space-y-1">
-              <li><strong>Администратор</strong> - полный доступ к системе</li>
-              <li><strong>Рекрутер</strong> - создание и управление тестами и кандидатами</li>
-              <li><strong>Интервьювер</strong> - просмотр и оценка результатов</li>
-            </ul>
+          </div>
+
+          {/* Форма входа */}
+          <div className="bg-white p-8 rounded-2xl shadow-md">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+                <Lock className="h-5 w-5 mr-2 text-primary" />
+                Вход в систему
+              </h2>
+              <p className="text-slate-600 mt-2">
+                Войдите в свой аккаунт для доступа ко всем функциям платформы
+              </p>
+            </div>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <Form {...loginForm}>
+                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                    <FormField
+                      control={loginForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Имя пользователя</FormLabel>
+                          <FormControl>
+                            <Input placeholder="admin" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={loginForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Пароль</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={loginMutation.isPending}
+                    >
+                      {loginMutation.isPending ? "Вход..." : "Войти в систему"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            <div className="mt-6 text-center text-sm text-slate-600">
+              <p>Для получения учетных данных обратитесь к администратору системы</p>
+            </div>
           </div>
         </div>
       </div>
