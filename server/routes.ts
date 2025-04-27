@@ -9,8 +9,11 @@ import {
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { setupAuth, requireRole } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  setupAuth(app);
   // Tests routes
   app.get("/api/tests", async (req: Request, res: Response) => {
     try {
