@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -41,6 +41,13 @@ const AssignTestModal = ({ isOpen, onClose, candidate }: AssignTestModalProps) =
 
   // Filter only active tests
   const activeTests = tests.filter(test => test.isActive);
+
+  // Сбрасываем сгенерированную ссылку при каждом открытии модального окна
+  useEffect(() => {
+    if (isOpen) {
+      setTestLink('');
+    }
+  }, [isOpen]);
 
   // Create session mutation
   const createSessionMutation = useMutation({
