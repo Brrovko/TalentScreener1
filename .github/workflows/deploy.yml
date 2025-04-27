@@ -23,29 +23,29 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
             set -e
 
-            # Если проект не клонирован — клонировать
+            # Проверяем, существует ли папка проекта
             if [ ! -d "${{ secrets.SSH_PROJECT_PATH }}" ]; then
               echo "Проект не найден. Клонируем репозиторий..."
               git clone https://github.com/${{ github.repository }} ${{ secrets.SSH_PROJECT_PATH }}
+              cd ${{ secrets.SSH_PROJECT_PATH }}
+              
+              echo "Устанавливаем зависимости..."
+              npm install
             else
               echo "Проект найден. Обновляем..."
               cd ${{ secrets.SSH_PROJECT_PATH }}
               git pull origin main
+              echo "Устанавливаем зависимости..."
+              npm install
             fi
 
-            # Перейти в папку проекта
-            cd ${{ secrets.SSH_PROJECT_PATH }}
-
-            # Установить зависимости
-            npm install
-
-            # Остановить старый процесс, если запущен
+            echo "Остановика старого процесса"
             if [ -f app.pid ]; then
               kill \$(cat app.pid) || true
               rm app.pid
             fi
 
-            # Запустить новый процесс через nohup
+            echo "Запуск нового процесса"
             nohup npm start > app.log 2>&1 &
             echo \$! > app.pid
           EOF
