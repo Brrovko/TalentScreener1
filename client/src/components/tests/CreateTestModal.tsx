@@ -24,21 +24,13 @@ const CreateTestModal = ({ isOpen, onClose, editingTest }: CreateTestModalProps)
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex justify-between items-center">
-          <div>
-            <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
-            {isEditing && (
-              <DialogDescription className="mt-1">
-                Edit test details and manage questions
-              </DialogDescription>
-            )}
-          </div>
-          <button 
-            onClick={onClose} 
-            className="text-neutral-500 hover:text-neutral-700"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
+          {isEditing && (
+            <DialogDescription className="mt-1">
+              Edit test details and manage questions
+            </DialogDescription>
+          )}
         </DialogHeader>
         
         {isEditing ? (
