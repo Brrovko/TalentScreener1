@@ -23,21 +23,25 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
             set -e
 
+            echo "Проверка, существует ли проект {{ secrets.SSH_PROJECT_PATH }}"
             if [ ! -d "${{ secrets.SSH_PROJECT_PATH }}/.git" ]; then
               echo "Проект не найден. Клонируем репозиторий..."
-              echo "Очистим директорию перед клонированием"
-              rm -rf ${{ secrets.SSH_PROJECT_PATH }}/* || true
               git clone https://github.com/${{ github.repository }} ${{ secrets.SSH_PROJECT_PATH }}
               cd ${{ secrets.SSH_PROJECT_PATH }}
+              echo "Устанавливаем зависимости..."
               npm install
             else
               echo "Проект найден. Обновляем..."
               cd ${{ secrets.SSH_PROJECT_PATH }}
+              echo "Получаем обновления..."
               git fetch origin
+              echo "Синхронизируем с основной веткой..."
               git reset --hard origin/main
+              echo "Обновляем зависимости..."
               npm install --no-save
-          fi
-          
+            fi
+
+            echo "Проверка, запущен ли старый процесс..."
             if [ -f app.pid ]; then
               echo "Останавливаем старый процесс..."
               kill \$(cat app.pid) || true
@@ -48,6 +52,7 @@ jobs:
             nohup npm start > app.log 2>&1 &
             echo \$! > app.pid
 
+            echo "Проверка, запущен ли процесс..."
             if ps -p \$(cat app.pid) > /dev/null; then
               echo "Сервис успешно запустился!"
             else
