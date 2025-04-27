@@ -3,7 +3,7 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - main   # или другая твоя ветка
+      - main   # или твоя прод-ветка
 
 jobs:
   deploy:
@@ -23,17 +23,29 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
             set -e
 
+            # Если проект не клонирован — клонировать
+            if [ ! -d "${{ secrets.SSH_PROJECT_PATH }}" ]; then
+              echo "Проект не найден. Клонируем репозиторий..."
+              git clone https://github.com/${{ github.repository }} ${{ secrets.SSH_PROJECT_PATH }}
+            else
+              echo "Проект найден. Обновляем..."
+              cd ${{ secrets.SSH_PROJECT_PATH }}
+              git pull origin main
+            fi
+
+            # Перейти в папку проекта
             cd ${{ secrets.SSH_PROJECT_PATH }}
 
-            git pull origin main
-
+            # Установить зависимости
             npm install
 
+            # Остановить старый процесс, если запущен
             if [ -f app.pid ]; then
               kill \$(cat app.pid) || true
               rm app.pid
             fi
 
+            # Запустить новый процесс через nohup
             nohup npm start > app.log 2>&1 &
             echo \$! > app.pid
           EOF
