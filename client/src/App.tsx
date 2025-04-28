@@ -13,7 +13,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
-import AuthPage from "@/pages/auth-page";
+import AuthPage from "@/pages/main-page";
 
 // Importing test-taking component
 import TakeTestPage from "./pages/take-test";

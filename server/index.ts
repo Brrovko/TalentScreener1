@@ -1,6 +1,13 @@
+import dotenv from 'dotenv';
+// Загружаем переменные окружения из файла .env
+dotenv.config();
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { runMigrations, seedDatabase } from "./migrations";
+import { PgStorage } from "./pg-storage";
+import { setStorage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +44,17 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Запускаем миграции базы данных
+  await runMigrations();
+  
+  // Заполняем базу данных начальными данными
+  await seedDatabase();
+  
+  // Создаем экземпляр PgStorage и устанавливаем его как хранилище
+  const pgStorage = new PgStorage();
+  // Используем функцию setStorage вместо прямого присваивания
+  setStorage(pgStorage);
+  
   // Initialize admin user if not exists
   try {
     const { storage } = await import("./storage");
@@ -78,10 +96,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
+  // ALWAYS serve the app on port 5004
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5000;
+  const port = 5005; // Изменяем порт с 5004 на 5005
   server.listen({
     port,
     host: "0.0.0.0",

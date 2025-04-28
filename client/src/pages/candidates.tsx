@@ -22,14 +22,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import SearchInput from "@/components/ui/SearchInput";
 import CandidatesTable from "@/components/candidates/CandidatesTable";
 import { useTranslation } from "react-i18next";
 
 const Candidates = () => {
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   const candidateFormSchema = z.object({
@@ -84,15 +82,6 @@ const Candidates = () => {
           <UserPlus className="h-5 w-5 mr-2" />
           {t("candidates.add_candidate")}
         </Button>
-      </div>
-
-      <div className="mb-6">
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder={t("candidates.search_placeholder", "Search candidates by name, email or position")}
-          className="max-w-md"
-        />
       </div>
 
       <CandidatesTable />

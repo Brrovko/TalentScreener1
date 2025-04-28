@@ -105,9 +105,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
         </div>
         
         <Badge
-          className="cursor-pointer"
           variant={test.isActive ? "success" : "outline"}
-          onClick={() => toggleTestStatus(test)}
         >
           {test.isActive ? "Active" : "Archived"}
         </Badge>
@@ -179,9 +177,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
                   <TableCell>{test.questionCount}</TableCell>
                   <TableCell>
                     <Badge
-                      className="cursor-pointer"
                       variant={test.isActive ? "success" : "outline"}
-                      onClick={() => toggleTestStatus(test)}
                     >
                       {test.isActive ? "Active" : "Archived"}
                     </Badge>

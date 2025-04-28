@@ -526,4 +526,17 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Создаем переменную для хранения текущего экземпляра хранилища
+let currentStorage: IStorage = new MemStorage();
+
+// Экспортируем storage как getter, который всегда возвращает текущее хранилище
+export const storage: IStorage = new Proxy({} as IStorage, {
+  get: function(target, prop) {
+    return currentStorage[prop as keyof IStorage];
+  }
+});
+
+// Функция для установки хранилища
+export function setStorage(newStorage: IStorage): void {
+  currentStorage = newStorage;
+}
