@@ -183,9 +183,6 @@ jobs:
           echo "status=$DEPLOY_STATUS" >> $GITHUB_OUTPUT
           echo "message=$DEPLOY_MESSAGE" >> $GITHUB_OUTPUT
 
-      - name: Copy docker-compose.yml to VPS
-        run: echo 'Skip: docker-compose.yml not needed'
-
       - name: Send deployment notification
         if: always()
         run: |
