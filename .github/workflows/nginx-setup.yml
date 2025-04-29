@@ -18,7 +18,7 @@ jobs:
           port: 22
           script: |
             sudo apt update
-            sudo apt install -y nginx
+            sudo apt install -y nginx certbot python3-certbot-nginx
             sudo tee /etc/nginx/sites-available/skillchecker.tech > /dev/null <<EOF
             server {
                 listen 80;
@@ -38,4 +38,8 @@ jobs:
             sudo ln -sf /etc/nginx/sites-available/skillchecker.tech /etc/nginx/sites-enabled/skillchecker.tech
             sudo nginx -t
             sudo systemctl reload nginx
-            echo "nginx настроен для skillchecker.tech -> localhost:5005"
+            # Получение и установка SSL-сертификата Let's Encrypt
+            sudo certbot --nginx --non-interactive --agree-tos --redirect -m brov.ko@ya.ru -d skillchecker.tech -d www.skillchecker.tech
+            sudo nginx -t
+            sudo systemctl reload nginx
+            echo "nginx + HTTPS настроен для skillchecker.tech -> localhost:5005"

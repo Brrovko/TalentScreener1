@@ -113,6 +113,18 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Освободить порты 80, 443, 8080
+        run: |
+          for PORT in 80 443 8080; do
+            PIDS=$(sudo lsof -t -i :$PORT || true)
+            if [ -n "$PIDS" ]; then
+              echo "Killing processes on port $PORT: $PIDS"
+              sudo kill -9 $PIDS || true
+            else
+              echo "No process is using port $PORT"
+            fi
+          done
+
       - name: Deploy to VPS
         id: deploy_result
         run: |
