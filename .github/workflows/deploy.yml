@@ -69,7 +69,8 @@ jobs:
 
       - name: Output image tag
         run: |
-          echo "image_tag=${{ steps.meta.outputs.tags }}" >> $GITHUB_OUTPUT
+          MAIN_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          echo "image_tag=$MAIN_TAG" >> $GITHUB_OUTPUT
           echo "deploy_id=$(date +%Y%m%d%H%M%S)-${{ github.sha }}" >> $GITHUB_OUTPUT
           echo "commit_url=${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" >> $GITHUB_OUTPUT
 
