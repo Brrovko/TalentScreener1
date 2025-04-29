@@ -103,7 +103,7 @@ jobs:
           DEPLOY_STATUS="success"
           DEPLOY_MESSAGE="Deployment successful"
 
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<EOF
             set -e
             cd ${{ secrets.SSH_PROJECT_PATH }}
 
@@ -114,10 +114,8 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull the new image
-            IMAGE_TAG="${{ steps.image-tag.outputs.image_tag }}"
-            DEPLOY_ID="${{ steps.image-tag.outputs.deploy_id }}"
-            echo "Pulling image: $IMAGE_TAG"
-            docker pull $IMAGE_TAG
+            echo "Pulling image: ${{ needs.build-and-push.outputs.image_tag }}"
+            docker pull ${{ needs.build-and-push.outputs.image_tag }}
 
             # Остановить и удалить старый контейнер, если он есть
             if docker ps -a --format '{{.Names}}' | grep -Eq '^skillchecker$'; then
@@ -133,7 +131,7 @@ jobs:
               -p 5005:5005 \
               -e NODE_ENV=production \
               -e DATABASE_URL=${{ env.DATABASE_URL }} \
-              $IMAGE_TAG
+              ${{ needs.build-and-push.outputs.image_tag }}
 
             # Проверить запуск
             ATTEMPTS=5
