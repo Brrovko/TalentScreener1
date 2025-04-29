@@ -28,6 +28,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_tag: ${{ steps.image-tag.outputs.image_tag }}
+      deploy_id: ${{ steps.image-tag.outputs.deploy_id }}
+      commit_url: ${{ steps.image-tag.outputs.commit_url }}
 
     steps:
       - name: Checkout repository
@@ -68,6 +72,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Output image tag
+        id: image-tag
         run: |
           MAIN_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
           echo "image_tag=$MAIN_TAG" >> $GITHUB_OUTPUT
@@ -116,6 +121,12 @@ jobs:
             # Pull the new image
             echo "Pulling image: ${{ needs.build-and-push.outputs.image_tag }}"
             docker pull ${{ needs.build-and-push.outputs.image_tag }}
+
+            # Сохраняем предыдущий и текущий теги для rollback
+            if [ -f current_version.txt ]; then
+              mv current_version.txt previous_version.txt
+            fi
+            echo "${{ needs.build-and-push.outputs.image_tag }}" > current_version.txt
 
             # Остановить и удалить старый контейнер, если он есть
             if docker ps -a --format '{{.Names}}' | grep -Eq '^skillchecker$'; then
@@ -197,34 +208,27 @@ jobs:
           ROLLBACK_STATUS="success"
           ROLLBACK_MESSAGE="Rollback successful"
 
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF || {
-            ROLLBACK_STATUS="failure"; 
-            ROLLBACK_MESSAGE="Rollback failed"; 
-          }
+          if [ -z "${{ github.event.inputs.version }}" ]; then
+            echo "Error: Version for rollback not provided!" >&2
+            ROLLBACK_STATUS="failure"
+            ROLLBACK_MESSAGE="Rollback failed: version not provided."
+            echo "status=$ROLLBACK_STATUS" >> $GITHUB_OUTPUT
+            echo "message=$ROLLBACK_MESSAGE" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<'EOF'
             set -e
             cd ${{ secrets.SSH_PROJECT_PATH }}
 
-            if [ -n "${{ github.event.inputs.version }}" ]; then
-              # Rollback to specific version
-              ROLLBACK_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}"
-              echo "Rolling back to specific version: $ROLLBACK_IMAGE"
-            elif [ -f "previous_version.txt" ]; then
-              # Rollback to previous version
-              ROLLBACK_IMAGE=$(head -n 1 previous_version.txt)
-              echo "Rolling back to previous version: $ROLLBACK_IMAGE"
-            else
-              echo "No previous version found for rollback"
-              exit 1
-            fi
+            ROLLBACK_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}"
+            echo "Rolling back to specific version: $ROLLBACK_IMAGE"
 
-            # Остановить и удалить старый контейнер, если он есть
             if docker ps -a --format '{{.Names}}' | grep -Eq '^skillchecker$'; then
-              echo "Stopping and removing existing skillchecker container..."
               docker stop skillchecker || true
               docker rm skillchecker || true
             fi
 
-            # Запустить контейнер с нужным образом (как при деплое)
             echo "Starting skillchecker container with rollback image..."
             docker run -d --name skillchecker \
               --restart unless-stopped \
