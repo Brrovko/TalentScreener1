@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including development)
+RUN npm config set registry https://registry.npmjs.org/
 RUN npm ci
 
 # Copy source code
@@ -23,6 +24,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install ALL dependencies including dev since the built code may reference them
+RUN npm config set registry https://registry.npmjs.org/
 RUN npm ci
 
 # Copy built app from builder stage
