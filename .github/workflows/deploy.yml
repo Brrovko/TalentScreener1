@@ -117,10 +117,6 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Copy docker-compose.yml to VPS
-        run: |
-          scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PROJECT_PATH }}/docker-compose.yml
-
       - name: Deploy to VPS
         id: deploy_result
         run: |
@@ -141,59 +137,33 @@ jobs:
             IMAGE_TAG="${{ steps.image-tag.outputs.image_tag }}"
             DEPLOY_ID="${{ steps.image-tag.outputs.deploy_id }}"
             echo "Pulling image: $IMAGE_TAG"
+            docker pull $IMAGE_TAG
 
-            # Save current image tag for rollback
-            if [ -f "current_version.txt" ]; then
-              mv current_version.txt previous_version.txt
+            # Остановить и удалить старый контейнер, если он есть
+            if docker ps -a --format '{{.Names}}' | grep -Eq '^skillchecker$'; then
+              echo "Stopping and removing existing skillchecker container..."
+              docker stop skillchecker || true
+              docker rm skillchecker || true
             fi
 
-            # Save current version information
-            echo "$IMAGE_TAG" > current_version.txt
-            echo "$DEPLOY_ID" >> current_version.txt
+            # Запустить новый контейнер
+            echo "Starting new skillchecker container..."
+            docker run -d --name skillchecker \
+              --restart unless-stopped \
+              -p 5005:5005 \
+              -e NODE_ENV=production \
+              -e DATABASE_URL=postgres://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }} \
+              $IMAGE_TAG
 
-            # Backup database before deployment
-            echo "Creating database backup..."
-            BACKUP_FILE="db_backup_${DEPLOY_ID}.sql"
-            if docker-compose ps -q postgres > /dev/null 2>&1; then
-              docker-compose exec -T postgres pg_dumpall -c -U postgres > $BACKUP_FILE
-              echo "Database backup created: $BACKUP_FILE"
-            else
-              echo "PostgreSQL container not running, skipping backup"
-            fi
-
-            # Set the image in docker-compose
-            export APP_IMAGE=$IMAGE_TAG
-
-            # Stop the current service (if running) and start the new one
-            echo "Stopping current service..."
-            docker-compose down || true
-
-            echo "Starting new service..."
-            docker-compose up -d
-
-            # Enhanced health check with retries
-            echo "Checking service health..."
+            # Проверить запуск
             for i in {1..6}; do
-              if curl --silent --fail http://localhost:${{ env.APP_PORT }}/health > /dev/null; then
-                echo "Service is running successfully!"
+              if curl --silent --fail http://localhost:5005/health > /dev/null; then
+                echo "Service is running!"
                 break
               else
                 if [ $i -eq 6 ]; then
-                  echo "Service failed to start after multiple attempts, rolling back..."
-
-                  if [ -f "previous_version.txt" ]; then
-                    PREV_IMAGE=$(head -n 1 previous_version.txt)
-
-                    export APP_IMAGE=$PREV_IMAGE
-                    docker-compose down
-                    docker-compose up -d
-
-                    echo "Rolled back to $PREV_IMAGE"
-                    exit 1
-                  else
-                    echo "No previous version found for rollback"
-                    exit 1
-                  fi
+                  echo "Service failed to start!"
+                  exit 1
                 else
                   echo "Attempt $i: Service not ready yet, waiting..."
                   sleep 10
@@ -202,11 +172,7 @@ jobs:
             done
 
             # Clean up old images (keep last 3)
-            echo "Cleaning up old images..."
             docker image prune -a -f --filter "until=72h"
-
-            # Clean up old backups (keep last 5)
-            ls -t db_backup_*.sql | tail -n +6 | xargs rm -f 2>/dev/null || true
           EOF
 
           if [ $? -ne 0 ]; then
@@ -216,6 +182,9 @@ jobs:
 
           echo "status=$DEPLOY_STATUS" >> $GITHUB_OUTPUT
           echo "message=$DEPLOY_MESSAGE" >> $GITHUB_OUTPUT
+
+      - name: Copy docker-compose.yml to VPS
+        run: echo 'Skip: docker-compose.yml not needed'
 
       - name: Send deployment notification
         if: always()
@@ -271,20 +240,25 @@ jobs:
               exit 1
             fi
 
-            # Set the image in docker-compose
-            export APP_IMAGE=$ROLLBACK_IMAGE
+            # Остановить и удалить старый контейнер, если он есть
+            if docker ps -a --format '{{.Names}}' | grep -Eq '^skillchecker$'; then
+              echo "Stopping and removing existing skillchecker container..."
+              docker stop skillchecker || true
+              docker rm skillchecker || true
+            fi
 
-            # Stop the current service and start the previous one
-            echo "Stopping current service..."
-            docker-compose down
+            # Запустить контейнер с нужным образом (как при деплое)
+            echo "Starting skillchecker container with rollback image..."
+            docker run -d --name skillchecker \
+              --restart unless-stopped \
+              -p 5005:5005 \
+              -e NODE_ENV=production \
+              -e DATABASE_URL=postgres://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }} \
+              $ROLLBACK_IMAGE
 
-            echo "Starting previous version of service..."
-            docker-compose up -d
-
-            # Verify the rollback
-            echo "Verifying rollback..."
+            # Проверить запуск
             for i in {1..6}; do
-              if curl --silent --fail http://localhost:${{ env.APP_PORT }}/health > /dev/null; then
+              if curl --silent --fail http://localhost:5005/health > /dev/null; then
                 echo "Rollback successful, service is running!"
                 break
               else
