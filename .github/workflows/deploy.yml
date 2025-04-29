@@ -19,11 +19,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   APP_PORT: 5005
-  PGHOST: ${{ secrets.PGHOST }}
-  PGUSER: ${{ secrets.PGUSER }}
-  PGPASSWORD: ${{ secrets.PGPASSWORD }}
-  PGDATABASE: ${{ secrets.PGDATABASE }}
-  PGPORT: ${{ secrets.PGPORT }}
+  DATABASE_URL: postgres://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }}
 
 jobs:
   build-and-push:
@@ -152,7 +148,7 @@ jobs:
               --restart unless-stopped \
               -p 5005:5005 \
               -e NODE_ENV=production \
-              -e DATABASE_URL=postgres://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }} \
+              -e DATABASE_URL=${{ env.DATABASE_URL }} \
               $IMAGE_TAG
 
             # Проверить запуск
@@ -252,7 +248,7 @@ jobs:
               --restart unless-stopped \
               -p 5005:5005 \
               -e NODE_ENV=production \
-              -e DATABASE_URL=postgres://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }} \
+              -e DATABASE_URL=${{ env.DATABASE_URL }} \
               $ROLLBACK_IMAGE
 
             # Проверить запуск
