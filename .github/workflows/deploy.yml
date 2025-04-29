@@ -156,20 +156,22 @@ jobs:
               $IMAGE_TAG
 
             # Проверить запуск
-            for i in {1..6}; do
-              if curl --silent --fail http://localhost:5005/health > /dev/null; then
+            ATTEMPTS=5
+            for i in $(seq 1 $ATTEMPTS); do
+              if curl --silent --fail http://localhost:5005 > /dev/null; then
                 echo "Service is running!"
                 break
               else
-                if [ $i -eq 6 ]; then
-                  echo "Service failed to start!"
-                  exit 1
-                else
-                  echo "Attempt $i: Service not ready yet, waiting..."
-                  sleep 10
-                fi
+                echo "Attempt $i: Service not ready yet, waiting..."
+                sleep 10
               fi
             done
+            # Если сервис не запустился, вывести логи контейнера
+            if ! curl --silent --fail http://localhost:5005; then
+              echo "Service failed to start! Showing container logs:"
+              docker logs $(docker ps -a -q --filter ancestor=ghcr.io/brrovko/skillchecker.tech:main --format="{{.ID}}") || true
+              exit 1
+            fi
 
             # Clean up old images (keep last 3)
             docker image prune -a -f --filter "until=72h"
@@ -255,7 +257,7 @@ jobs:
 
             # Проверить запуск
             for i in {1..6}; do
-              if curl --silent --fail http://localhost:5005/health > /dev/null; then
+              if curl --silent --fail http://localhost:5005 > /dev/null; then
                 echo "Rollback successful, service is running!"
                 break
               else
