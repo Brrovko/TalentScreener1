@@ -112,9 +112,13 @@ jobs:
             set -e
             cd ${{ secrets.SSH_PROJECT_PATH }}
 
-            echo "Убить процессы на портах 80, 443 и 8080"
+            echo "Завершаем процессы на портах 80, 443, 8080 (если есть)"
             for port in 80 443 8080; do
-              fuser -k ${port}/tcp || true
+              PIDS=$(lsof -t -i :${port} || true)
+              if [ -n "$PIDS" ]; then
+                echo "Killing processes on port $port: $PIDS"
+                kill -9 $PIDS || true
+              fi
             done
 
             # Create .env file if needed
@@ -126,12 +130,6 @@ jobs:
             # Pull the new image
             echo "Pulling image: ${{ needs.build-and-push.outputs.image_tag }}"
             docker pull ${{ needs.build-and-push.outputs.image_tag }}
-
-            # Сохраняем предыдущий и текущий теги для rollback
-            if [ -f current_version.txt ]; then
-              mv current_version.txt previous_version.txt
-            fi
-            echo "${{ needs.build-and-push.outputs.image_tag }}" > current_version.txt
 
             # Остановить и удалить старый контейнер, если он есть
             if docker ps -a --format '{{.Names}}' | grep -Eq '^skillchecker$'; then
