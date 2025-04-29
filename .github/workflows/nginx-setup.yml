@@ -1,0 +1,46 @@
+name: Manual Nginx Setup
+
+description: 'Настройка nginx на сервере через SSH вручную'
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_nginx_setup:
+        description: 'Выполнить настройку nginx?'
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  setup-nginx:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.run_nginx_setup == 'true' }}
+    steps:
+      - name: Подключиться по SSH и настроить nginx
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            sudo apt update
+            sudo apt install -y nginx
+            sudo tee /etc/nginx/sites-available/skillchecker.tech > /dev/null <<EOF
+            server {
+                listen 80;
+                server_name skillchecker.tech www.skillchecker.tech;
+                location / {
+                    proxy_pass http://localhost:5005;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                }
+            }
+            EOF
+            sudo ln -sf /etc/nginx/sites-available/skillchecker.tech /etc/nginx/sites-enabled/skillchecker.tech
+            sudo nginx -t
+            sudo systemctl reload nginx
+            echo "nginx настроен для skillchecker.tech -> localhost:5005"
