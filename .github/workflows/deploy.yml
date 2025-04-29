@@ -112,6 +112,11 @@ jobs:
             set -e
             cd ${{ secrets.SSH_PROJECT_PATH }}
 
+            echo "Убить процессы на портах 80, 443 и 8080"
+            for port in 80 443 8080; do
+              fuser -k ${port}/tcp || true
+            done
+
             # Create .env file if needed
             touch .env
 
