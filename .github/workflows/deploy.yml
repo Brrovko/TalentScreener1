@@ -1,70 +1,309 @@
-name: Deploy to VPS
+name: Build, Push, and Deploy
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      rollback:
+        description: 'Rollback to previous version'
+        type: boolean
+        default: false
+      version:
+        description: 'Version to rollback to (if empty, rolls back to previous version)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  APP_PORT: 5005
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
+    if: ${{ !github.event.inputs.rollback }}
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=short
+            type=ref,event=branch
+            latest
+            type=raw,value=v1.0.{{date 'YYYYMMDD'}}.{{sha}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Save image tags to artifact
+        run: |
+          echo "${{ steps.meta.outputs.tags }}" > image-tags.txt
+          echo "$(date +%Y%m%d%H%M%S)-${{ github.sha }}" >> image-tags.txt
+          # Сохраняем текущий URL коммита для уведомлений
+          echo "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" >> image-tags.txt
+
+      - name: Upload image tags
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-tags
+          path: image-tags.txt
+          retention-days: 90
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: ${{ !github.event.inputs.rollback }}
+    outputs:
+      deploy_status: ${{ steps.deploy_result.outputs.status }}
+      deploy_message: ${{ steps.deploy_result.outputs.message }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download image tags
+        uses: actions/download-artifact@v4
+        with:
+          name: image-tags
+
+      - name: Get image tag
+        id: image-tag
+        run: |
+          IMAGE_TAG=$(head -n 1 image-tags.txt)
+          DEPLOY_ID=$(sed -n '2p' image-tags.txt)
+          COMMIT_URL=$(sed -n '3p' image-tags.txt)
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+          echo "commit_url=$COMMIT_URL" >> $GITHUB_OUTPUT
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Deploy via SSH
+      - name: Copy docker-compose.yml to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+          scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PROJECT_PATH }}/docker-compose.yml
+
+      - name: Deploy to VPS
+        id: deploy_result
+        run: |
+          DEPLOY_STATUS="success"
+          DEPLOY_MESSAGE="Deployment successful"
+          
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF || {
+            DEPLOY_STATUS="failure"; 
+            DEPLOY_MESSAGE="Deployment failed"; 
+          }
             set -e
+            cd ${{ secrets.SSH_PROJECT_PATH }}
+            
+            # Create .env file if needed
+            touch .env
+            
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull the new image
+            IMAGE_TAG="${{ steps.image-tag.outputs.image_tag }}"
+            DEPLOY_ID="${{ steps.image-tag.outputs.deploy_id }}"
+            echo "Pulling image: $IMAGE_TAG"
 
-            echo "Проверка, существует ли проект {{ secrets.SSH_PROJECT_PATH }}"
-            if [ ! -d "${{ secrets.SSH_PROJECT_PATH }}/.git" ]; then
-              echo "Проект не найден. Клонируем репозиторий..."
-              git clone https://github.com/${{ github.repository }} ${{ secrets.SSH_PROJECT_PATH }}
-              cd ${{ secrets.SSH_PROJECT_PATH }}
-              echo "Устанавливаем зависимости..."
-              npm install
+            # Save current image tag for rollback
+            if [ -f "current_version.txt" ]; then
+              mv current_version.txt previous_version.txt
+            fi
+            
+            # Save current version information
+            echo "$IMAGE_TAG" > current_version.txt
+            echo "$DEPLOY_ID" >> current_version.txt
+            
+            # Backup database before deployment
+            echo "Creating database backup..."
+            BACKUP_FILE="db_backup_${DEPLOY_ID}.sql"
+            if docker-compose ps -q postgres > /dev/null 2>&1; then
+              docker-compose exec -T postgres pg_dumpall -c -U postgres > \$BACKUP_FILE
+              echo "Database backup created: \$BACKUP_FILE"
             else
-              echo "Проект найден. Обновляем..."
-              cd ${{ secrets.SSH_PROJECT_PATH }}
-              echo "Получаем обновления..."
-              git fetch origin
-              echo "Синхронизируем с основной веткой..."
-              git reset --hard origin/main
-              echo "Обновляем зависимости..."
-              npm install --no-save
+              echo "PostgreSQL container not running, skipping backup"
             fi
-
-            echo "Проверка, запущен ли старый процесс..."
-            if [ -f app.pid ]; then
-              echo "Останавливаем старый процесс..."
-              kill \$(cat app.pid) || true
-              rm app.pid
-            fi
-
-            echo "Запуск нового процесса..."
-            nohup npm start > app.log 2>&1 &
-            echo \$! > app.pid
-
-            echo "Проверка, запущен ли процесс..."
-            if ps -p \$(cat app.pid) > /dev/null; then
-              echo "Сервис успешно запустился!"
-            else
-              echo "Ошибка при запуске сервиса!"
-              exit 1
-            fi
-
-            echo "Проверка доступности сервиса..."
-            if curl --silent --fail http://localhost:3000 > /dev/null; then
-              echo "Сервис доступен!"
-            else
-              echo "Сервис не доступен!"
-              exit 1
-            fi
+            
+            # Set the image in docker-compose
+            export APP_IMAGE=$IMAGE_TAG
+            
+            # Stop the current service (if running) and start the new one
+            echo "Stopping current service..."
+            docker-compose down || true
+            
+            echo "Starting new service..."
+            docker-compose up -d
+            
+            # Enhanced health check with retries
+            echo "Checking service health..."
+            for i in {1..6}; do
+              if curl --silent --fail http://localhost:${{ env.APP_PORT }}/health > /dev/null; then
+                echo "Service is running successfully!"
+                break
+              else
+                if [ \$i -eq 6 ]; then
+                  echo "Service failed to start after multiple attempts, rolling back..."
+                  
+                  if [ -f "previous_version.txt" ]; then
+                    PREV_IMAGE=\$(head -n 1 previous_version.txt)
+                    
+                    export APP_IMAGE=\$PREV_IMAGE
+                    docker-compose down
+                    docker-compose up -d
+                    
+                    echo "Rolled back to \$PREV_IMAGE"
+                    exit 1
+                  else
+                    echo "No previous version found for rollback"
+                    exit 1
+                  fi
+                else
+                  echo "Attempt \$i: Service not ready yet, waiting..."
+                  sleep 10
+                fi
+              fi
+            done
+            
+            # Clean up old images (keep last 3)
+            echo "Cleaning up old images..."
+            docker image prune -a -f --filter "until=72h"
+            
+            # Clean up old backups (keep last 5)
+            ls -t db_backup_*.sql | tail -n +6 | xargs rm -f 2>/dev/null || true
           EOF
+          
+          echo "status=$DEPLOY_STATUS" >> $GITHUB_OUTPUT
+          echo "message=$DEPLOY_MESSAGE" >> $GITHUB_OUTPUT
+
+      - name: Send deployment notification
+        if: always()
+        run: |
+          DEPLOY_STATUS="${{ steps.deploy_result.outputs.status }}"
+          DEPLOY_MESSAGE="${{ steps.deploy_result.outputs.message }}"
+          COMMIT_URL="${{ steps.image-tag.outputs.commit_url }}"
+          
+          if [ "$DEPLOY_STATUS" == "success" ]; then
+            STATUS_EMOJI="✅"
+          else
+            STATUS_EMOJI="❌"
+          fi
+          
+          echo "::notice::$STATUS_EMOJI Deployment $DEPLOY_STATUS: $DEPLOY_MESSAGE (Commit: $COMMIT_URL)"
+
+  rollback:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.rollback }}
+    outputs:
+      rollback_status: ${{ steps.rollback_result.outputs.status }}
+      rollback_message: ${{ steps.rollback_result.outputs.message }}
+
+    steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Rollback to previous version
+        id: rollback_result
+        run: |
+          ROLLBACK_STATUS="success"
+          ROLLBACK_MESSAGE="Rollback successful"
+          
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF || {
+            ROLLBACK_STATUS="failure"; 
+            ROLLBACK_MESSAGE="Rollback failed"; 
+          }
+            set -e
+            cd ${{ secrets.SSH_PROJECT_PATH }}
+            
+            if [ -n "${{ github.event.inputs.version }}" ]; then
+              # Rollback to specific version
+              ROLLBACK_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}"
+              echo "Rolling back to specific version: $ROLLBACK_IMAGE"
+            elif [ -f "previous_version.txt" ]; then
+              # Rollback to previous version
+              ROLLBACK_IMAGE=$(head -n 1 previous_version.txt)
+              echo "Rolling back to previous version: $ROLLBACK_IMAGE"
+            else
+              echo "No previous version found for rollback"
+              exit 1
+            fi
+            
+            # Set the image in docker-compose
+            export APP_IMAGE=$ROLLBACK_IMAGE
+            
+            # Stop the current service and start the previous one
+            echo "Stopping current service..."
+            docker-compose down
+            
+            echo "Starting previous version of service..."
+            docker-compose up -d
+            
+            # Verify the rollback
+            echo "Verifying rollback..."
+            for i in {1..6}; do
+              if curl --silent --fail http://localhost:${{ env.APP_PORT }}/health > /dev/null; then
+                echo "Rollback successful, service is running!"
+                break
+              else
+                if [ \$i -eq 6 ]; then
+                  echo "Service failed to start after rollback!"
+                  exit 1
+                else
+                  echo "Attempt \$i: Service not ready yet, waiting..."
+                  sleep 10
+                fi
+              fi
+            done
+            
+            echo "Rolled back successfully"
+          EOF
+          
+          echo "status=$ROLLBACK_STATUS" >> $GITHUB_OUTPUT
+          echo "message=$ROLLBACK_MESSAGE" >> $GITHUB_OUTPUT
+
+      - name: Send rollback notification
+        if: always()
+        run: |
+          ROLLBACK_STATUS="${{ steps.rollback_result.outputs.status }}"
+          ROLLBACK_MESSAGE="${{ steps.rollback_result.outputs.message }}"
+          
+          if [ "$ROLLBACK_STATUS" == "success" ]; then
+            STATUS_EMOJI="✅"
+          else
+            STATUS_EMOJI="❌"
+          fi
+          
+          echo "::notice::$STATUS_EMOJI Rollback $ROLLBACK_STATUS: $ROLLBACK_MESSAGE"

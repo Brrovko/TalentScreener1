@@ -1,0 +1,48 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install all dependencies (including development)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies including dev since the built code may reference them
+RUN npm ci
+
+# Copy built app from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Copy drizzle migrations
+COPY drizzle/ ./drizzle/
+
+# Environment variables
+ENV NODE_ENV=production
+
+# Install postgresql-client for health checks
+RUN apk add --no-cache postgresql-client
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Expose the application port
+EXPOSE 3000
+
+# Start the application
+CMD ["node", "dist/index.js"]

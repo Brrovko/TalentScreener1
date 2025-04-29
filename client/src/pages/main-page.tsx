@@ -65,8 +65,8 @@ const AuthPage = () => {
         <canvas id="cursor-effect" className="fixed top-0 left-0 w-full h-full pointer-events-none z-0" />
         <div className="max-w-6xl w-full relative z-10">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-extrabold text-primary-700 mb-4">
-              Система профессионального тестирования
+            <h1 className="text-4xl font-extrabold text-primary-700 mb-4 drop-shadow-lg">
+              Платформа оценки профессиональных навыков
             </h1>
             <p className="text-xl text-slate-600 max-w-3xl mx-auto">
               Современная платформа для оценки навыков кандидатов и управления процессом подбора персонала
@@ -76,8 +76,8 @@ const AuthPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Основные преимущества платформы */}
             <div className="col-span-2 bg-white p-8 rounded-2xl shadow-md">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-primary-50 p-6 rounded-xl mb-6 md:mb-0 md:col-span-2 flex flex-col items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="bg-primary-50 p-2 rounded-xl mb-6 md:mb-0 md:col-span-2 flex flex-col items-center">
                 </div>
                 <div className="bg-primary-50 p-6 rounded-xl">
                   <div className="flex items-center mb-4">
