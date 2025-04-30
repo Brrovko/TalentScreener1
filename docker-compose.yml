@@ -2,35 +2,33 @@ version: '3.8'
 
 services:
   app:
-    image: ${APP_IMAGE:-ghcr.io/username/skillchecker:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: skillchecker:latest
+    container_name: skillchecker
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     ports:
       - "5005:5005"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/skillchecker
-      # Add other environment variables as needed
-      # - NEON_DATABASE_URL=${NEON_DATABASE_URL}
-    volumes:
-      - app-data:/app/data
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/skillchecker
+      - SESSION_SECRET=your-secure-session-secret-key
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5005/health"]
+      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5005 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
     networks:
       - skillchecker-network
-    deploy:
-      rollback_config:
-        parallelism: 0
-        order: stop-first
 
-  postgres:
-    image: postgres:14
+  db:
+    image: postgres:17.4
+    container_name: skillchecker-postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=postgres
@@ -45,13 +43,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 5s
     networks:
       - skillchecker-network
-
-volumes:
-  app-data:
-  postgres-data:
 
 networks:
   skillchecker-network:
     driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
