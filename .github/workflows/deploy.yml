@@ -112,15 +112,6 @@ jobs:
             set -e
             cd ${{ secrets.SSH_PROJECT_PATH }}
 
-            echo "Завершаем процессы на портах 80, 443, 8080 (если есть)"
-            for port in 80 443 8080; do
-              PIDS=$(lsof -t -i :${port} || true)
-              if [ -n "$PIDS" ]; then
-                echo "Killing processes on port $port: $PIDS"
-                kill -9 $PIDS || true
-              fi
-            done
-
             # Create .env file if needed
             touch .env
 
