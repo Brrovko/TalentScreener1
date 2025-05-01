@@ -169,7 +169,7 @@ const CandidatesTable = () => {
     return (
       <div className="p-4 border-b border-neutral-200 last:border-b-0">
         <div className="flex justify-between items-center mb-2">
-          <Link to={`/candidates/${candidate.id}`} className="text-blue-600 hover:underline font-medium">
+          <Link to={`/dashboard/candidates/${candidate.id}`} className="text-blue-600 hover:underline font-medium">
             {candidate.name}
           </Link>
           <Button
@@ -231,7 +231,7 @@ const CandidatesTable = () => {
         <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <input
             type="text"
-            placeholder={t('common.filter') + '...'}
+            placeholder={t('common.search')}
             className="w-full md:max-w-xs px-3 py-2 border border-neutral-200 rounded-md"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -288,7 +288,7 @@ const CandidatesTable = () => {
                   return (
                     <TableRow key={candidate.id} className="hover:bg-neutral-50">
                       <TableCell className="font-medium">
-                        <Link to={`/candidates/${candidate.id}`} className="text-blue-600 hover:underline">
+                        <Link to={`/dashboard/candidates/${candidate.id}`} className="text-blue-600 hover:underline">
                           {candidate.name}
                         </Link>
                       </TableCell>

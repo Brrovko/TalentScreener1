@@ -63,9 +63,6 @@ const Dashboard = () => {
 
       {/* Recent Activity */}
       <div className="mt-8">
-        <h2 className="text-lg font-semibold text-neutral-800 mb-4">
-          {t('dashboard.recent_activity')}
-        </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <RecentActivity />
           

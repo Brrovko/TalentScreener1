@@ -11,9 +11,13 @@ services:
     ports:
       - "5005:5005"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/skillchecker
       - SESSION_SECRET=your-secure-session-secret-key
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    command: npm run dev
     depends_on:
       db:
         condition: service_healthy

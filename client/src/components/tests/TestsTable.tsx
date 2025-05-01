@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTranslation } from "react-i18next";
 
 interface TestsTableProps {
   onEdit: (test: Test) => void;
@@ -24,6 +25,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
   const { toast } = useToast();
   const [filter, setFilter] = useState("");
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
 
   const { data: tests = [], isLoading } = useQuery<Test[]>({
     queryKey: ["/api/tests"],
@@ -38,14 +40,14 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
     },
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Test status updated successfully",
+        title: t('common.success'),
+        description: t('tests.status_updated', 'Test status updated successfully'),
       });
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to update test: ${error}`,
+        title: t('common.error'),
+        description: t('tests.failed_to_update_status', 'Failed to update test status') + `: ${error}`,
         variant: "destructive",
       });
     },
@@ -89,17 +91,17 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
             className="h-8 ml-2 -mt-1"
           >
             <Pencil className="h-4 w-4" />
-            <span className="sr-only">Edit</span>
+            <span className="sr-only">{t('common.edit')}</span>
           </Button>
         </div>
         
         <div className="grid grid-cols-2 gap-2 text-sm mb-3">
           <div>
-            <span className="text-neutral-500">Category:</span>{" "}
+            <span className="text-neutral-500">{t('tests.category')}:</span>{" "}
             <span className="text-neutral-700">{test.category}</span>
           </div>
           <div>
-            <span className="text-neutral-500">Questions:</span>{" "}
+            <span className="text-neutral-500">{t('tests.questions')}:</span>{" "}
             <span className="text-neutral-700">{test.questionCount}</span>
           </div>
         </div>
@@ -107,7 +109,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
         <Badge
           variant={test.isActive ? "success" : "outline"}
         >
-          {test.isActive ? "Active" : "Archived"}
+          {test.isActive ? t('tests.active') : t('tests.archived')}
         </Badge>
       </div>
     );
@@ -118,7 +120,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
       <div className="px-4 py-3">
         <input
           type="text"
-          placeholder="Filter tests..."
+          placeholder={t('common.search')}
           className="w-full md:max-w-xs px-3 py-2 border border-neutral-200 rounded-md"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -129,12 +131,12 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
       {isMobile ? (
         <div className="divide-y divide-neutral-200">
           {isLoading ? (
-            <div className="text-center py-8">Loading tests...</div>
+            <div className="text-center py-8">{t('common.loading')}</div>
           ) : filteredTests.length === 0 ? (
             <div className="text-center py-8">
               {filter
-                ? "No tests match your filter criteria"
-                : "No tests available"}
+                ? t('common.no_filter_results')
+                : t('common.no_data')}
             </div>
           ) : (
             filteredTests.map((test) => (
@@ -147,26 +149,26 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
         <Table>
           <TableHeader>
             <TableRow className="bg-neutral-50 hover:bg-neutral-50">
-              <TableHead>Test Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Questions</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t('tests.test_name')}</TableHead>
+              <TableHead>{t('tests.category')}</TableHead>
+              <TableHead>{t('tests.questions')}</TableHead>
+              <TableHead>{t('tests.status')}</TableHead>
+              <TableHead className="text-right">{t('common.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8">
-                  Loading tests...
+                  {t('common.loading')}
                 </TableCell>
               </TableRow>
             ) : filteredTests.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8">
                   {filter
-                    ? "No tests match your filter criteria"
-                    : "No tests available"}
+                    ? t('common.no_filter_results')
+                    : t('common.no_data')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -179,7 +181,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
                     <Badge
                       variant={test.isActive ? "success" : "outline"}
                     >
-                      {test.isActive ? "Active" : "Archived"}
+                      {test.isActive ? t('tests.active') : t('tests.archived')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">

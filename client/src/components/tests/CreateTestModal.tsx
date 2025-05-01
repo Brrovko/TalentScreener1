@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TestForm from "./TestForm";
 import QuestionsManager from "./QuestionsManager";
 import { Test } from "@shared/schema";
+import { useTranslation } from "react-i18next";
 
 interface CreateTestModalProps {
   isOpen: boolean;
@@ -18,7 +19,8 @@ interface CreateTestModalProps {
 }
 
 const CreateTestModal = ({ isOpen, onClose, editingTest }: CreateTestModalProps) => {
-  const title = editingTest ? "Edit Test" : "Create New Test";
+  const { t } = useTranslation();
+  const title = editingTest ? t('tests.edit_test') : t('tests.create_test');
   const isEditing = Boolean(editingTest);
 
   return (
@@ -28,7 +30,7 @@ const CreateTestModal = ({ isOpen, onClose, editingTest }: CreateTestModalProps)
           <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
           {isEditing && (
             <DialogDescription className="mt-1">
-              Edit test details and manage questions
+              {t('tests.edit_description', 'Edit test details and manage questions')}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -36,8 +38,8 @@ const CreateTestModal = ({ isOpen, onClose, editingTest }: CreateTestModalProps)
         {isEditing ? (
           <Tabs defaultValue="details">
             <TabsList className="mb-4">
-              <TabsTrigger value="details">Test Details</TabsTrigger>
-              <TabsTrigger value="questions">Questions</TabsTrigger>
+              <TabsTrigger value="details">{t('tests.test_details', 'Test Details')}</TabsTrigger>
+              <TabsTrigger value="questions">{t('tests.questions')}</TabsTrigger>
             </TabsList>
             <TabsContent value="details">
               <TestForm test={editingTest} onComplete={onClose} />

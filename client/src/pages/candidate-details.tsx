@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow, format } from "date-fns";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import AssignTestModal from "@/components/candidates/AssignTestModal";
+import { useTranslation } from "react-i18next";
 
 interface TestSession {
   id: number;
@@ -31,9 +32,11 @@ interface TestSession {
 }
 
 const CandidateDetails = () => {
-  const [, params] = useRoute<{ id: string }>("/candidates/:id");
+  const [, params] = useRoute<{ id: string }>("/dashboard/candidates/:id");
   const candidateId = parseInt(params?.id || "0");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const { t } = useTranslation();
+  const [filter, setFilter] = useState('');
 
   // Fetch candidate details
   const { data: candidate, isLoading: isLoadingCandidate } = useQuery({
@@ -101,6 +104,19 @@ const CandidateDetails = () => {
     return passed ? "success" : "destructive";
   };
 
+  // Filter sessions based on search term
+  const filteredSessions = useMemo(() => {
+    if (!filter.trim()) return sessions;
+    
+    return sessions.filter(session => {
+      const testName = session.test?.name || `Test #${session.testId}`;
+      const category = session.test?.category || "Uncategorized";
+      
+      return testName.toLowerCase().includes(filter.toLowerCase()) ||
+             category.toLowerCase().includes(filter.toLowerCase());
+    });
+  }, [sessions, filter]);
+
   // Handle manual refresh of sessions
   const handleRefreshSessions = () => {
     queryClient.invalidateQueries({
@@ -138,16 +154,16 @@ const CandidateDetails = () => {
       <div className="container mx-auto py-8">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Candidate Not Found</CardTitle>
+            <CardTitle className="text-2xl">{t('candidates.not_found', 'Candidate Not Found')}</CardTitle>
             <CardDescription>
-              The candidate you're looking for doesn't exist or has been removed.
+              {t('candidates.not_found_message', 'The candidate you\'re looking for doesn\'t exist or has been removed.')}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
-            <Link to="/candidates">
+            <Link to="/dashboard/candidates">
               <Button>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Candidates
+                {t('candidates.back_to_candidates', 'Back to Candidates')}
               </Button>
             </Link>
           </CardContent>
@@ -160,16 +176,16 @@ const CandidateDetails = () => {
     <div className="container mx-auto py-8">
       <div className="mb-6">
         <div className="flex items-center mb-2">
-          <Link to="/candidates">
+          <Link to="/dashboard/candidates">
             <Button variant="ghost" size="sm" className="mr-2">
               <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
+              {t('common.back', 'Back')}
             </Button>
           </Link>
           <h1 className="text-2xl font-bold">{candidate.name}</h1>
         </div>
         <p className="text-muted-foreground">
-          Candidate profile and test history
+          {t('candidates.profile_and_history', 'Candidate profile and test history')}
         </p>
       </div>
 
@@ -177,13 +193,13 @@ const CandidateDetails = () => {
         {/* Candidate Info Card */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Candidate Information</CardTitle>
+            <CardTitle>{t('candidates.information', 'Candidate Information')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1">
               <div className="flex items-center text-sm">
                 <Mail className="h-4 w-4 mr-2 text-neutral-500" />
-                <span className="text-muted-foreground">Email</span>
+                <span className="text-muted-foreground">{t('candidates.email')}</span>
               </div>
               <p>{candidate.email}</p>
             </div>
@@ -191,15 +207,15 @@ const CandidateDetails = () => {
             <div className="space-y-1">
               <div className="flex items-center text-sm">
                 <Briefcase className="h-4 w-4 mr-2 text-neutral-500" />
-                <span className="text-muted-foreground">Position</span>
+                <span className="text-muted-foreground">{t('candidates.position')}</span>
               </div>
-              <p>{candidate.position || "Not specified"}</p>
+              <p>{candidate.position || t('candidates.not_specified', 'Not specified')}</p>
             </div>
 
             <div className="space-y-1">
               <div className="flex items-center text-sm">
                 <CalendarDays className="h-4 w-4 mr-2 text-neutral-500" />
-                <span className="text-muted-foreground">Registered</span>
+                <span className="text-muted-foreground">{t('candidates.registered', 'Registered')}</span>
               </div>
               <p>{formatDistanceToNow(new Date(candidate.createdAt), { addSuffix: true })}</p>
               <p className="text-xs text-muted-foreground">
@@ -215,7 +231,7 @@ const CandidateDetails = () => {
                 className="w-full"
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Assign New Test
+                {t('candidates.assign_new_test', 'Assign New Test')}
               </Button>
             </div>
           </CardContent>
@@ -225,9 +241,9 @@ const CandidateDetails = () => {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Test History</CardTitle>
+              <CardTitle>{t('candidates.test_history', 'Test History')}</CardTitle>
               <CardDescription>
-                View all tests assigned to this candidate
+                {t('candidates.view_all_tests', 'View all tests assigned to this candidate')}
               </CardDescription>
             </div>
             <Button 
@@ -235,47 +251,57 @@ const CandidateDetails = () => {
               size="sm" 
               onClick={handleRefreshSessions}
             >
-              Refresh
+              {t('common.refresh', 'Refresh')}
             </Button>
           </CardHeader>
           <CardContent>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder={t('common.search')}
+                className="w-full px-3 py-2 border border-neutral-200 rounded-md"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              />
+            </div>
+            
             <Tabs defaultValue="active" className="w-full">
               <TabsList className="mb-4">
-                <TabsTrigger value="active">Active Tests</TabsTrigger>
-                <TabsTrigger value="completed">Completed Tests</TabsTrigger>
-                <TabsTrigger value="all">All Tests</TabsTrigger>
+                <TabsTrigger value="active">{t('candidates.active_tests', 'Active Tests')}</TabsTrigger>
+                <TabsTrigger value="completed">{t('candidates.completed_tests', 'Completed Tests')}</TabsTrigger>
+                <TabsTrigger value="all">{t('candidates.all_tests', 'All Tests')}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="active" className="space-y-4">
                 {isLoadingSessions ? (
-                  <div className="text-center py-8">Loading test sessions...</div>
-                ) : sessions.filter(s => s.status !== "completed").length === 0 ? (
+                  <div className="text-center py-8">{t('common.loading')}</div>
+                ) : filteredSessions.filter(s => s.status !== "completed").length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No active tests found for this candidate
+                    {filter.trim() ? t('common.no_filter_results') : t('candidates.no_active_tests', 'No active tests found for this candidate')}
                   </div>
                 ) : (
-                  sessions
+                  filteredSessions
                     .filter(session => session.status !== "completed")
                     .map(session => (
                       <div key={session.id} className="border rounded-md p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="font-medium">
-                            {session.test?.name || `Test #${session.testId}`}
+                            {session.test?.name || `${t('candidates.test', 'Test')} #${session.testId}`}
                           </div>
                           <Badge variant={getStatusBadgeVariant(session.status)}>
-                            {session.status}
+                            {session.status === "in_progress" ? t('candidates.in_progress') : t('candidates.pending')}
                           </Badge>
                         </div>
                         
                         <div className="text-sm text-muted-foreground mb-2">
-                          {session.test?.category || "Uncategorized"}
+                          {session.test?.category || t('candidates.uncategorized', 'Uncategorized')}
                         </div>
                         
                         <div className="flex justify-between items-center mt-4 text-sm">
                           <div>
-                            <div>Expires: {new Date(session.expiresAt).toLocaleDateString()}</div>
+                            <div>{t('candidates.expires', 'Expires')}: {new Date(session.expiresAt).toLocaleDateString()}</div>
                             {session.startedAt && (
-                              <div>Started: {new Date(session.startedAt).toLocaleString()}</div>
+                              <div>{t('candidates.started', 'Started')}: {new Date(session.startedAt).toLocaleString()}</div>
                             )}
                           </div>
                           
@@ -284,7 +310,7 @@ const CandidateDetails = () => {
                             variant="outline"
                             onClick={() => handleCopyTestLink(session.token)}
                           >
-                            Copy Link
+                            {t('candidates.copy_link', 'Copy Link')}
                           </Button>
                         </div>
                       </div>
@@ -294,40 +320,40 @@ const CandidateDetails = () => {
               
               <TabsContent value="completed" className="space-y-4">
                 {isLoadingSessions ? (
-                  <div className="text-center py-8">Loading test sessions...</div>
-                ) : sessions.filter(s => s.status === "completed").length === 0 ? (
+                  <div className="text-center py-8">{t('common.loading')}</div>
+                ) : filteredSessions.filter(s => s.status === "completed").length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No completed tests found for this candidate
+                    {filter.trim() ? t('common.no_filter_results') : t('candidates.no_completed_tests', 'No completed tests found for this candidate')}
                   </div>
                 ) : (
-                  sessions
+                  filteredSessions
                     .filter(session => session.status === "completed")
                     .map(session => (
                       <div key={session.id} className="border rounded-md p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="font-medium">
-                            {session.test?.name || `Test #${session.testId}`}
+                            {session.test?.name || `${t('candidates.test', 'Test')} #${session.testId}`}
                           </div>
                           <Badge variant={getStatusBadgeVariant(session.status)}>
-                            {session.status}
+                            {t('candidates.completed')}
                           </Badge>
                         </div>
                         
                         <div className="text-sm text-muted-foreground mb-2">
-                          {session.test?.category || "Uncategorized"}
+                          {session.test?.category || t('candidates.uncategorized', 'Uncategorized')}
                         </div>
                         
                         <div className="flex items-center space-x-4 mt-2">
-                          <div className="text-lg font-bold">{session.score || 0} pts</div>
+                          <div className="text-lg font-bold">{session.score || 0} {t('candidates.points', 'pts')}</div>
                           {session.percentScore !== undefined && (
                             <div className="text-sm text-gray-500">
-                              {session.percentScore}% score 
-                              {session.test?.passingScore && ` (Passing: ${session.test.passingScore}%)`}
+                              {session.percentScore}% {t('candidates.score')} 
+                              {session.test?.passingScore && ` (${t('candidates.passing', 'Passing')}: ${session.test.passingScore}%)`}
                             </div>
                           )}
                           {session.passed !== undefined && (
                             <Badge variant={getResultBadgeVariant(session.passed)}>
-                              {session.passed ? "Pass" : "Fail"}
+                              {session.passed ? t('candidates.pass') : t('candidates.fail')}
                             </Badge>
                           )}
                         </div>
@@ -335,10 +361,10 @@ const CandidateDetails = () => {
                         <div className="flex justify-between items-center mt-4 text-sm">
                           <div>
                             {session.completedAt && (
-                              <div>Completed: {new Date(session.completedAt).toLocaleString()}</div>
+                              <div>{t('candidates.completed_at', 'Completed')}: {new Date(session.completedAt).toLocaleString()}</div>
                             )}
                             {session.startedAt && (
-                              <div>Started: {new Date(session.startedAt).toLocaleString()}</div>
+                              <div>{t('candidates.started', 'Started')}: {new Date(session.startedAt).toLocaleString()}</div>
                             )}
                           </div>
                         </div>
@@ -349,39 +375,43 @@ const CandidateDetails = () => {
               
               <TabsContent value="all" className="space-y-4">
                 {isLoadingSessions ? (
-                  <div className="text-center py-8">Loading test sessions...</div>
-                ) : sessions.length === 0 ? (
+                  <div className="text-center py-8">{t('common.loading')}</div>
+                ) : filteredSessions.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No tests assigned to this candidate yet
+                    {filter.trim() ? t('common.no_filter_results') : t('candidates.no_tests_assigned', 'No tests assigned to this candidate yet')}
                   </div>
                 ) : (
-                  sessions.map(session => (
+                  filteredSessions.map(session => (
                     <div key={session.id} className="border rounded-md p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="font-medium">
-                          {session.test?.name || `Test #${session.testId}`}
+                          {session.test?.name || `${t('candidates.test', 'Test')} #${session.testId}`}
                         </div>
                         <Badge variant={getStatusBadgeVariant(session.status)}>
-                          {session.status}
+                          {session.status === "completed" 
+                            ? t('candidates.completed') 
+                            : session.status === "in_progress" 
+                              ? t('candidates.in_progress') 
+                              : t('candidates.pending')}
                         </Badge>
                       </div>
                       
                       <div className="text-sm text-muted-foreground mb-2">
-                        {session.test?.category || "Uncategorized"}
+                        {session.test?.category || t('candidates.uncategorized', 'Uncategorized')}
                       </div>
                       
                       {session.status === "completed" && (
                         <div className="flex items-center space-x-4 mt-2">
-                          <div className="text-lg font-bold">{session.score || 0} pts</div>
+                          <div className="text-lg font-bold">{session.score || 0} {t('candidates.points', 'pts')}</div>
                           {session.percentScore !== undefined && (
                             <div className="text-sm text-gray-500">
-                              {session.percentScore}% score 
-                              {session.test?.passingScore && ` (Passing: ${session.test.passingScore}%)`}
+                              {session.percentScore}% {t('candidates.score')} 
+                              {session.test?.passingScore && ` (${t('candidates.passing', 'Passing')}: ${session.test.passingScore}%)`}
                             </div>
                           )}
                           {session.passed !== undefined && (
                             <Badge variant={getResultBadgeVariant(session.passed)}>
-                              {session.passed ? "Pass" : "Fail"}
+                              {session.passed ? t('candidates.pass') : t('candidates.fail')}
                             </Badge>
                           )}
                         </div>
@@ -389,12 +419,12 @@ const CandidateDetails = () => {
                       
                       <div className="flex justify-between items-center mt-4 text-sm">
                         <div>
-                          <div>Expires: {new Date(session.expiresAt).toLocaleDateString()}</div>
+                          <div>{t('candidates.expires', 'Expires')}: {new Date(session.expiresAt).toLocaleDateString()}</div>
                           {session.completedAt && (
-                            <div>Completed: {new Date(session.completedAt).toLocaleString()}</div>
+                            <div>{t('candidates.completed_at', 'Completed')}: {new Date(session.completedAt).toLocaleString()}</div>
                           )}
                           {session.startedAt && (
-                            <div>Started: {new Date(session.startedAt).toLocaleString()}</div>
+                            <div>{t('candidates.started', 'Started')}: {new Date(session.startedAt).toLocaleString()}</div>
                           )}
                         </div>
                         
@@ -404,7 +434,7 @@ const CandidateDetails = () => {
                             variant="outline"
                             onClick={() => handleCopyTestLink(session.token)}
                           >
-                            Copy Link
+                            {t('candidates.copy_link', 'Copy Link')}
                           </Button>
                         )}
                       </div>

@@ -8,6 +8,7 @@ const translation = {
     hr_manager: "HR менеджер",
     loading: "Загрузка...",
     filter: "Фильтр",
+    search: "Найти...",
     no_data: "Нет данных",
     no_filter_results: "Нет результатов по вашему фильтру",
     actions: "Действия",

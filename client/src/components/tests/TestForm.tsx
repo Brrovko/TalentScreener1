@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CATEGORIES, Test } from "@shared/schema";
+import { useTranslation } from "react-i18next";
 
 interface TestFormProps {
   test?: Test | null;
@@ -45,6 +46,7 @@ type TestFormValues = z.infer<typeof testFormSchema>;
 const TestForm = ({ test, onComplete }: TestFormProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation();
 
   const form = useForm<TestFormValues>({
     resolver: zodResolver(testFormSchema),
@@ -69,15 +71,15 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
       toast({
-        title: "Success",
-        description: "Test created successfully",
+        title: t('common.success'),
+        description: t('tests.test_created_successfully', 'Test created successfully'),
       });
       onComplete();
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to create test: ${error}`,
+        title: t('common.error'),
+        description: t('tests.failed_to_create', 'Failed to create test') + `: ${error}`,
         variant: "destructive",
       });
     },
@@ -92,15 +94,15 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
       toast({
-        title: "Success",
-        description: "Test updated successfully",
+        title: t('common.success'),
+        description: t('tests.test_updated_successfully', 'Test updated successfully'),
       });
       onComplete();
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to update test: ${error}`,
+        title: t('common.error'),
+        description: t('tests.failed_to_update', 'Failed to update test') + `: ${error}`,
         variant: "destructive",
       });
     },
@@ -127,9 +129,9 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Test Name</FormLabel>
+              <FormLabel>{t('tests.test_name')}</FormLabel>
               <FormControl>
-                <Input placeholder="Enter test name" {...field} />
+                <Input placeholder={t('tests.enter_test_name', 'Enter test name')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -141,10 +143,10 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t('tests.description')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Enter test description"
+                  placeholder={t('tests.enter_test_description', 'Enter test description')}
                   className="resize-none"
                   rows={3}
                   {...field}
@@ -161,14 +163,14 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>{t('tests.category')}</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
+                      <SelectValue placeholder={t('tests.select_category', 'Select a category')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -189,11 +191,11 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
             name="timeLimit"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Time Limit (minutes)</FormLabel>
+                <FormLabel>{t('tests.time_limit')} ({t('tests.minutes')})</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Leave empty for no limit"
+                    placeholder={t('tests.leave_empty_for_no_limit', 'Leave empty for no limit')}
                     {...field}
                     onChange={(e) => {
                       const value = e.target.value === "" ? undefined : parseInt(e.target.value);
@@ -211,7 +213,7 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
             name="passingScore"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Passing Score (%)</FormLabel>
+                <FormLabel>{t('tests.passing_score')} (%)</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -236,9 +238,9 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <FormLabel className="text-base">Active Status</FormLabel>
+                <FormLabel className="text-base">{t('tests.active_status')}</FormLabel>
                 <p className="text-sm text-muted-foreground">
-                  Make this test available for candidates
+                  {t('tests.make_available')}
                 </p>
               </div>
               <FormControl>
@@ -251,16 +253,23 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
           )}
         />
 
-        <div className="flex justify-end space-x-3">
-          <Button type="button" variant="outline" onClick={onComplete}>
-            Cancel
+        <div className="flex justify-end space-x-3 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onComplete}
+          >
+            {t('common.cancel')}
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+          >
             {isSubmitting
-              ? "Saving..."
+              ? t('common.submitting', 'Submitting...')
               : test
-              ? "Update Test"
-              : "Create Test"}
+                ? t('common.save')
+                : t('tests.create_test')}
           </Button>
         </div>
       </form>
