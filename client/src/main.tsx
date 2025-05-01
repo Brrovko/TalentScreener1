@@ -2,7 +2,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { ThemeProvider } from "next-themes";
-import "./i18n"; // Инициализация i18n
+import "./i18n";
+import "./assets/favicon.ico";
 
 createRoot(document.getElementById("root")!).render(
   <ThemeProvider attribute="class" defaultTheme="light">
