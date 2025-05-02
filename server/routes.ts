@@ -657,6 +657,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/generate-questions", async (req: Request, res: Response) => {
+    try {
+      const { count, type, testId } = req.body;
+      
+      if (!count || !type || !testId) {
+        return res.status(400).json({ error: "Count, type and testId are required" });
+      }
+
+      const test = await storage.getTest(testId);
+      if (!test) {
+        return res.status(404).json({ message: "Test not found" });
+      }
+
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: process.env.LLM_MODEL || 'openai/gpt-3.5-turbo',
+          messages: [{
+            role: 'user',
+            content: `Generate ${count} ${type} questions on the test purpose '${test.name}' and the test descriptions '${test.description}'. \
+              Return ONLY pure JSON array without any Markdown formatting or additional text. \
+              Each question must have between 3 and 5 options. \
+              Required fields for each question: \
+              - 'content' (string): question text \
+              - 'options' (string[]): array of options \
+              - 'correctAnswer' (number): index of correct option (0-based) \
+              - 'type' (string): question type (${type}) \
+              Example format: \
+              [{"content":"Question text","options":["Option 1","Option 2","Option 3"],"correctAnswer":0,"type":"${type}"}]`
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'OpenRouter API error');
+      }
+      
+      const result = await response.json();
+      console.log('Full OpenRouter API response:', JSON.stringify(result, null, 2));
+      console.log('Message content:', result.choices[0].message.content);
+      
+      let questions;
+      const rawContent = result.choices[0].message.content;
+      try {
+        // Сначала пробуем распарсить как чистый JSON
+        questions = JSON.parse(rawContent);
+        console.log('Successfully parsed as raw JSON');
+      } catch (e) {
+        console.log('Trying to extract JSON from Markdown...');
+        const jsonMatch = rawContent.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonMatch) {
+          questions = JSON.parse(jsonMatch[1]);
+          console.log('Successfully extracted JSON from Markdown');
+        } else {
+          console.error('Failed to parse response:', rawContent);
+          throw new Error('Invalid response format from OpenRouter');
+        }
+      }
+      
+      const savedQuestions = [];
+      for (const q of questions) {
+        try {
+          const saved = await storage.createQuestion({
+            content: q.content,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            type: q.type || type,
+            testId: parseInt(testId),
+            points: q.points || 1,
+            order: savedQuestions.length
+          });
+          savedQuestions.push(saved);
+        } catch (dbError) {
+          console.error('Full DB error:', dbError);
+          console.error('Question data:', {
+            content: q.content,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            type: q.type || type,
+            testId: parseInt(testId),
+            points: q.points || 1,
+            order: savedQuestions.length
+          });
+          throw new Error(`Failed to save question: ${(dbError as Error).message}`);
+        }
+      }
+      
+      res.json(savedQuestions);
+    } catch (error: any) {
+      console.error('Generation error:', error);
+      res.status(500).json({ 
+        error: 'Question generation failed',
+        details: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, GripVertical, Edit, Trash2, MoveUp, MoveDown } from "lucide-react";
+import { Plus, GripVertical, Edit, Trash2, MoveUp, MoveDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Question, Test } from "@shared/schema";
 import {
@@ -14,6 +14,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Определим типы вопросов как константы для отображения
 const QUESTION_TYPES = ["multiple_choice", "checkbox", "text", "code"] as const;
@@ -53,6 +64,12 @@ const QuestionsManager = ({ test }: QuestionsManagerProps) => {
   const [deletingQuestion, setDeletingQuestion] = useState<Question | null>(null);
   const [reordering, setReordering] = useState(false);
   const [orderedQuestions, setOrderedQuestions] = useState<Question[]>([]);
+  const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generationParams, setGenerationParams] = useState({
+    count: 5,
+    type: 'multiple-choice'
+  });
 
   const { data: questions = [], isLoading } = useQuery<Question[]>({
     queryKey: ["/api/tests", test.id, "questions"],
@@ -197,25 +214,141 @@ const QuestionsManager = ({ test }: QuestionsManagerProps) => {
     }
   };
 
+  const generateQuestions = async () => {
+    setGenerating(true);
+    try {
+      const response = await fetch('/api/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...generationParams,
+          testId: test.id
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      
+      const newQuestions = await response.json();
+      setOrderedQuestions([...orderedQuestions, ...newQuestions]);
+      
+      toast({
+        title: "Success",
+        description: `Successfully generated ${newQuestions.length} questions`,
+        variant: "default",
+      });
+      
+      setIsGenerationModalOpen(false);
+    } catch (error: any) {
+      console.error('Generation error:', error);
+      toast({
+        title: "Generation failed",
+        description: error.message || "Failed to generate questions",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">
-          Questions ({questions.length})
-        </h3>
+        <h2 className="text-xl font-semibold">Questions</h2>
         <div className="flex gap-2">
-          {questions.length > 1 && (
-            <Button
-              variant={reordering ? "destructive" : "outline"}
-              size="sm"
-              onClick={toggleReordering}
-            >
-              {reordering ? "Cancel" : "Reorder"}
-            </Button>
-          )}
-          <Button onClick={handleAddQuestion} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Question
+          <Button onClick={handleAddQuestion}>
+            <Plus className="mr-2 h-4 w-4" /> Add Question
+          </Button>
+          
+          <Dialog open={isGenerationModalOpen} onOpenChange={setIsGenerationModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Plus className="mr-2 h-4 w-4" /> Generate Questions
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generate Questions</DialogTitle>
+                <DialogDescription>
+                  Configure parameters for question generation
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="count" className="text-right">
+                    Count
+                  </Label>
+                  <Select 
+                    value={generationParams.count.toString()}
+                    onValueChange={(value) => setGenerationParams({...generationParams, count: parseInt(value)})}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select count" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[3, 5, 10].map(num => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num} questions
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="type" className="text-right">
+                    Type
+                  </Label>
+                  <Select
+                    value={generationParams.type}
+                    onValueChange={(value) => setGenerationParams({...generationParams, type: value})}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
+                      <SelectItem value="true-false">True/False</SelectItem>
+                      <SelectItem value="short-answer">Short Answer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <DialogFooter>
+                {generating && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating questions...
+                  </div>
+                )}
+                <Button 
+                  onClick={generateQuestions}
+                  disabled={generating}
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Please wait
+                    </>
+                  ) : 'Generate'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          <Button variant="outline" onClick={toggleReordering}>
+            {reordering ? (
+              <>
+                <GripVertical className="mr-2 h-4 w-4" /> Save Order
+              </>
+            ) : (
+              <>
+                <GripVertical className="mr-2 h-4 w-4" /> Reorder
+              </>
+            )}
           </Button>
         </div>
       </div>
