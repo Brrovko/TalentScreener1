@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useRoute, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { formatDistanceToNow, format } from "date-fns";
 import { ArrowLeft, Mail, Briefcase, CalendarDays, FileSpreadsheet } from "lucide-react";
+import { Candidate } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,50 +39,39 @@ const CandidateDetails = () => {
   const { t } = useTranslation();
   const [filter, setFilter] = useState('');
 
-  // Fetch candidate details
-  const { data: candidate, isLoading: isLoadingCandidate } = useQuery({
+  // Get candidate data
+  const { data: candidate, isLoading: isLoadingCandidate } = useQuery<Candidate>({
     queryKey: ["/api/candidates", candidateId],
     queryFn: async () => {
-      const response = await fetch(`/api/candidates/${candidateId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch candidate details");
-      }
-      return response.json();
+      const response = await apiRequest("GET", `/api/candidates/${candidateId}`);
+      return await response.json();
     },
     enabled: !!candidateId,
   });
 
-  // Fetch candidate test sessions
+  // Get candidate's test sessions
   const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<TestSession[]>({
     queryKey: ["/api/candidates", candidateId, "sessions"],
     queryFn: async () => {
-      const response = await fetch(`/api/candidates/${candidateId}/sessions`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch candidate test sessions");
-      }
-      
-      // Get sessions
-      const sessions = await response.json();
-      
-      // Get test details for each session
-      const sessionsWithTestDetails = await Promise.all(
-        sessions.map(async (session: TestSession) => {
-          try {
-            const testResponse = await fetch(`/api/tests/${session.testId}`);
-            if (testResponse.ok) {
-              const test = await testResponse.json();
-              return { ...session, test };
-            }
-            return session;
-          } catch (error) {
-            return session;
-          }
-        })
-      );
-      
-      return sessionsWithTestDetails;
+      const response = await apiRequest("GET", `/api/candidates/${candidateId}/sessions`);
+      return await response.json();
     },
     enabled: !!candidateId,
+  });
+
+  // Get test details for each session
+  const sessionsWithTests = useQueries({
+    queries: sessions.map((session) => ({
+      queryKey: [`/api/tests/${session.testId}`],
+      queryFn: async () => {
+        const testResponse = await apiRequest("GET", `/api/tests/${session.testId}`);
+        return {
+          ...session,
+          test: await testResponse.json(),
+        };
+      },
+      enabled: !!sessions.length,
+    })),
   });
 
   // Helper function to get status badge variant

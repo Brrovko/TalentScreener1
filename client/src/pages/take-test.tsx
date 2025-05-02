@@ -68,11 +68,8 @@ const TakeTestPage = () => {
   const { data: testDetails, isLoading, error } = useQuery<TestDetails>({
     queryKey: ['/api/sessions/token', token],
     queryFn: async () => {
-      const response = await fetch(`/api/sessions/token/${token}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch test details");
-      }
-      return response.json();
+      const response = await apiRequest("GET", `/api/sessions/token/${token}`);
+      return await response.json();
     },
     enabled: !!token,
     refetchOnWindowFocus: false,

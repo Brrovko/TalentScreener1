@@ -29,7 +29,7 @@ import { useTranslation } from "react-i18next";
 
 interface TestFormProps {
   test?: Test | null;
-  onComplete: () => void;
+  onComplete: (test?: Test) => void;
 }
 
 const testFormSchema = z.object({
@@ -68,13 +68,13 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
       toast({
         title: t('common.success'),
         description: t('tests.test_created_successfully', 'Test created successfully'),
       });
-      onComplete();
+      onComplete(data);
     },
     onError: (error) => {
       toast({
@@ -91,13 +91,13 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
       const response = await apiRequest("PATCH", `/api/tests/${id}`, updateData);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
       toast({
         title: t('common.success'),
         description: t('tests.test_updated_successfully', 'Test updated successfully'),
       });
-      onComplete();
+      onComplete(data);
     },
     onError: (error) => {
       toast({
@@ -257,7 +257,7 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
           <Button
             type="button"
             variant="outline"
-            onClick={onComplete}
+            onClick={() => onComplete()}
           >
             {t('common.cancel')}
           </Button>

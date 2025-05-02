@@ -16,6 +16,7 @@ import { FileSpreadsheet, CheckCircle, XCircle, ChevronRight } from "lucide-reac
 import AssignTestModal from "./AssignTestModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "react-i18next";
+import { apiRequest } from "@/lib/queryClient";
 
 const CandidatesTable = () => {
   const [filter, setFilter] = useState("");
@@ -38,7 +39,7 @@ const CandidatesTable = () => {
       await Promise.all(
         candidates.map(async (candidate) => {
           try {
-            const response = await fetch(`/api/candidates/${candidate.id}/sessions`);
+            const response = await apiRequest("GET", `/api/candidates/${candidate.id}/sessions`);
             if (response.ok) {
               const sessions = await response.json();
               sessionsData[candidate.id] = sessions;
