@@ -11,6 +11,10 @@ import {
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { setupAuth, requireRole, hashPassword } from "./auth";
+import Papa from 'papaparse';
+import multer from 'multer';
+
+const upload = multer();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
@@ -725,11 +729,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const q of questions) {
         try {
           const saved = await storage.createQuestion({
+            testId,
             content: q.content,
+            type: q.type || type,
             options: q.options,
             correctAnswer: q.correctAnswer,
-            type: q.type || type,
-            testId: parseInt(testId),
             points: q.points || 1,
             order: savedQuestions.length
           });
@@ -758,6 +762,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Экспорт вопросов в CSV
+  app.get("/api/tests/:id/export-questions", async (req: Request, res: Response) => {
+    try {
+      const testId = parseInt(req.params.id);
+      const questions = await storage.getQuestionsByTestId(testId);
+      
+      // Преобразуем вопросы в CSV-формат
+      const csvData = questions.map(q => ({
+        content: q.content,
+        type: q.type,
+        options: JSON.stringify(q.options),
+        correctAnswer: JSON.stringify(q.correctAnswer)
+      }));
+      
+      const csv = Papa.unparse(csvData);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=questions-test-${testId}.csv`);
+      res.send(csv);
+    } catch (error) {
+      console.error('Error exporting questions:', error);
+      res.status(500).json({ message: "Failed to export questions" });
+    }
+  });
+
+  // Импорт вопросов из CSV
+  app.post("/api/tests/:id/import-questions", 
+    upload.single('file'),
+    async (req, res) => {
+      try {
+        const testId = parseInt(req.params.id);
+        const file = req.file;
+        
+        if (!file) {
+          return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        const csvText = file.buffer.toString();
+        const results = Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true
+        });
+
+        if (results.errors.length > 0) {
+          return res.status(400).json({ 
+            message: "Invalid CSV format",
+            errors: results.errors
+          });
+        }
+
+        // Получаем существующие вопросы для определения порядка новых вопросов
+        const existingQuestions = await storage.getQuestionsByTestId(testId);
+        const maxOrder = existingQuestions.length > 0 
+          ? Math.max(...existingQuestions.map(q => q.order))
+          : 0;
+
+        // Импортируем новые вопросы
+        const createdQuestions = [];
+        for (const row of results.data as any[]) {
+          try {
+            const question = await storage.createQuestion({
+              testId,
+              content: row.content,
+              type: row.type || 'multiple_choice',
+              options: JSON.parse(row.options),
+              correctAnswer: JSON.parse(row.correctAnswer),
+              points: row.points ? parseInt(row.points) : 1,
+              order: maxOrder + createdQuestions.length + 1 // Устанавливаем порядок после существующих вопросов
+            });
+            createdQuestions.push(question);
+          } catch (e) {
+            console.error('Error parsing question row:', row, e);
+          }
+        }
+
+        // Обновляем порядок всех вопросов
+        if (createdQuestions.length > 0) {
+          // Получаем все вопросы теста после импорта
+          const allQuestions = await storage.getQuestionsByTestId(testId);
+          // Получаем ID всех вопросов в правильном порядке
+          const questionIds = allQuestions.map(q => q.id);
+          // Обновляем порядок вопросов
+          await storage.reorderQuestions(testId, questionIds);
+        }
+
+        res.json({
+          importedCount: createdQuestions.length,
+          questions: createdQuestions
+        });
+      } catch (error) {
+        console.error('Error importing questions:', error);
+        res.status(500).json({ message: "Failed to import questions" });
+      }
+    }
+  );
 
   const httpServer = createServer(app);
 

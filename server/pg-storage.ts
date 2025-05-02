@@ -71,7 +71,6 @@ export class PgStorage implements IStorage {
       description: test.description || null,
       timeLimit: test.timeLimit || null,
       isActive: test.isActive !== undefined ? test.isActive : true,
-      questionCount: 0,
       passingScore: test.passingScore || 70
     };
     
@@ -114,14 +113,6 @@ export class PgStorage implements IStorage {
     };
     
     const result = await db.insert(questions).values(questionToInsert).returning();
-    
-    // Обновляем счетчик вопросов в тесте
-    await db.update(tests)
-      .set({ 
-        questionCount: sql`${tests.questionCount} + 1` 
-      })
-      .where(eq(tests.id, question.testId));
-    
     return result[0];
   }
 
@@ -135,26 +126,16 @@ export class PgStorage implements IStorage {
 
   async deleteQuestion(id: number): Promise<boolean> {
     try {
-      // Получаем информацию о вопросе перед удалением
-      const questionToDelete = await db.select()
-        .from(questions)
-        .where(eq(questions.id, id));
+      // Получаем вопрос перед удалением
+      const questionResult = await db.select().from(questions).where(eq(questions.id, id));
+      const question = questionResult[0];
       
-      if (questionToDelete.length === 0) {
+      if (!question) {
         return false;
       }
       
-      const testId = questionToDelete[0].testId;
-      
       // Удаляем вопрос
       await db.delete(questions).where(eq(questions.id, id));
-      
-      // Обновляем счетчик вопросов в тесте
-      await db.update(tests)
-        .set({ 
-          questionCount: sql`${tests.questionCount} - 1` 
-        })
-        .where(eq(tests.id, testId));
       
       return true;
     } catch (error) {
@@ -163,17 +144,26 @@ export class PgStorage implements IStorage {
     }
   }
 
+  async deleteQuestionsByTestId(testId: number): Promise<boolean> {
+    try {
+      // Удаляем вопросы
+      await db.delete(questions).where(eq(questions.testId, testId));
+      return true;
+    } catch (error) {
+      console.error('Error deleting questions by test ID:', error);
+      return false;
+    }
+  }
+
   async reorderQuestions(testId: number, questionIds: number[]): Promise<boolean> {
     try {
-      // Обновляем порядок вопросов
+      // Обновляем порядок каждого вопроса
       for (let i = 0; i < questionIds.length; i++) {
         await db.update(questions)
           .set({ order: i + 1 })
-          .where(and(
-            eq(questions.id, questionIds[i]),
-            eq(questions.testId, testId)
-          ));
+          .where(eq(questions.id, questionIds[i]));
       }
+      
       return true;
     } catch (error) {
       console.error('Error reordering questions:', error);

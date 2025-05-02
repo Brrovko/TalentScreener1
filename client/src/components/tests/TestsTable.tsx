@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Test } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,22 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
 
   const { data: tests = [], isLoading } = useQuery<Test[]>({
     queryKey: ["/api/tests"],
+  });
+
+  const { data: questionsCountMap = {}, isLoading: isLoadingQuestions } = useQuery<Record<number, number>>({
+    queryKey: ["/api/tests/questions-count"],
+    queryFn: async () => {
+      const countMap: Record<number, number> = {};
+
+      for (const test of tests) {
+        const response = await apiRequest("GET", `/api/tests/${test.id}/questions`);
+        const questions = await response.json();
+        countMap[test.id] = questions.length;
+      }
+
+      return countMap;
+    },
+    enabled: tests.length > 0,
   });
 
   const updateTestMutation = useMutation({
@@ -70,7 +86,6 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
         );
       })
       .sort((a, b) => {
-        // Sort by active status first, then by name
         if (a.isActive === b.isActive) {
           return a.name.localeCompare(b.name);
         }
@@ -78,7 +93,6 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
       });
   }, [tests, filter]);
 
-  // Mobile card view for a test
   const TestCard = ({ test }: { test: Test }) => {
     return (
       <div className="p-4 border-b border-neutral-200 last:border-b-0">
@@ -102,7 +116,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
           </div>
           <div>
             <span className="text-neutral-500">{t('tests.questions')}:</span>{" "}
-            <span className="text-neutral-700">{test.questionCount}</span>
+            <span className="text-neutral-700">{questionsCountMap[test.id] || 0}</span>
           </div>
         </div>
         
@@ -176,7 +190,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
                 <TableRow key={test.id} className="hover:bg-neutral-50">
                   <TableCell className="font-medium">{test.name}</TableCell>
                   <TableCell>{test.category}</TableCell>
-                  <TableCell>{test.questionCount}</TableCell>
+                  <TableCell>{questionsCountMap[test.id] || 0}</TableCell>
                   <TableCell>
                     <Badge
                       variant={test.isActive ? "success" : "outline"}

@@ -41,7 +41,6 @@ export const tests = pgTable("tests", {
   createdBy: integer("created_by").notNull(),
   timeLimit: integer("time_limit"),
   isActive: boolean("is_active").notNull().default(true),
-  questionCount: integer("question_count").notNull().default(0),
   passingScore: integer("passing_score").notNull().default(70), // Проходной балл в процентах
 });
 

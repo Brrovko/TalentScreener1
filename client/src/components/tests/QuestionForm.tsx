@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, X, CheckCircle, RotateCcw } from "lucide-react";
@@ -55,7 +55,7 @@ const QuestionForm = ({ test, question, onClose }: QuestionFormProps) => {
     options: ["", ""],
     correctAnswer: 0,
     points: 1,
-    order: test.questionCount + 1,
+    order: 1, // Будет обновлено после загрузки вопросов
   });
   
   // Initialize form data from question if editing
@@ -65,13 +65,32 @@ const QuestionForm = ({ test, question, onClose }: QuestionFormProps) => {
         testId: question.testId,
         content: question.content,
         type: question.type as QuestionType,
-        options: (question.options as string[]) || [""],
-        correctAnswer: question.correctAnswer,
+        options: Array.isArray(question.options) ? question.options : [],
+        correctAnswer: question.correctAnswer as string | number | number[],
         points: question.points,
         order: question.order,
       });
     }
   }, [question]);
+  
+  // Загружаем существующие вопросы для определения порядка нового вопроса
+  const { data: questions = [] } = useQuery<Question[]>({
+    queryKey: ["/api/tests", test.id, "questions"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/tests/${test.id}/questions`);
+      return response.json();
+    },
+  });
+  
+  // Устанавливаем порядок нового вопроса после загрузки вопросов
+  useEffect(() => {
+    if (!question && questions.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        order: questions.length + 1
+      }));
+    }
+  }, [questions, question]);
   
   // Mutations
   const createQuestionMutation = useMutation({
@@ -198,7 +217,7 @@ const QuestionForm = ({ test, question, onClose }: QuestionFormProps) => {
       options: ["", ""],
       correctAnswer: 0,
       points: 1,
-      order: test.questionCount + 1,
+      order: questions.length + 1,
     });
   };
   

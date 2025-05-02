@@ -30,6 +30,7 @@ export interface IStorage {
   createQuestion(question: InsertQuestion): Promise<Question>;
   updateQuestion(id: number, question: Partial<InsertQuestion>): Promise<Question | undefined>;
   deleteQuestion(id: number): Promise<boolean>;
+  deleteQuestionsByTestId(testId: number): Promise<boolean>;
   reorderQuestions(testId: number, questionIds: number[]): Promise<boolean>;
 
   // Candidate operations
@@ -308,8 +309,11 @@ export class MemStorage implements IStorage {
     const id = this.testId++;
     const test: Test = { 
       ...insertTest, 
-      id, 
-      questionCount: 0,
+      id,
+      description: insertTest.description || null,
+      timeLimit: insertTest.timeLimit || null,
+      isActive: insertTest.isActive !== undefined ? insertTest.isActive : true,
+      passingScore: insertTest.passingScore !== undefined ? insertTest.passingScore : 60
     };
     this.tests.set(id, test);
     return test;
@@ -337,15 +341,13 @@ export class MemStorage implements IStorage {
 
   async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {
     const id = this.questionId++;
-    const question: Question = { ...insertQuestion, id };
+    const question: Question = { 
+      ...insertQuestion, 
+      id,
+      type: insertQuestion.type || 'multiple_choice',
+      points: insertQuestion.points || 1
+    };
     this.questions.set(id, question);
-    
-    // Update the question count on the test
-    const test = this.tests.get(insertQuestion.testId);
-    if (test) {
-      test.questionCount = (test.questionCount || 0) + 1;
-      this.tests.set(test.id, test);
-    }
     
     return question;
   }
@@ -360,17 +362,25 @@ export class MemStorage implements IStorage {
   }
 
   async deleteQuestion(id: number): Promise<boolean> {
-    const question = this.questions.get(id);
-    if (!question) return false;
-    
-    // Update the question count on the test
-    const test = this.tests.get(question.testId);
-    if (test) {
-      test.questionCount = Math.max(0, (test.questionCount || 1) - 1);
-      this.tests.set(test.id, test);
+    if (!this.questions.has(id)) return false;
+    this.questions.delete(id);
+    return true;
+  }
+  
+  async deleteQuestionsByTestId(testId: number): Promise<boolean> {
+    try {
+      const questionsToDelete = Array.from(this.questions.values())
+        .filter(q => q.testId === testId)
+        .map(q => q.id);
+      
+      for (const id of questionsToDelete) {
+        this.questions.delete(id);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error deleting questions by test ID:', error);
+      return false;
     }
-    
-    return this.questions.delete(id);
   }
 
   async reorderQuestions(testId: number, questionIds: number[]): Promise<boolean> {
@@ -411,7 +421,8 @@ export class MemStorage implements IStorage {
     const candidate: Candidate = { 
       ...insertCandidate, 
       id, 
-      createdAt: now 
+      createdAt: now,
+      position: insertCandidate.position || null
     };
     this.candidates.set(id, candidate);
     return candidate;

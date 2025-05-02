@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, GripVertical, Edit, Trash2, MoveUp, MoveDown, Loader2 } from "lucide-react";
+import { Plus, GripVertical, Edit, Trash2, MoveUp, MoveDown, Loader2, MoreHorizontal, Download, Upload, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Question, Test } from "@shared/schema";
 import {
@@ -25,6 +25,15 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import ImportExportButtons from "@/components/tests/ImportExportButtons";
 
 // Определим типы вопросов как константы для отображения
 const QUESTION_TYPES = ["multiple_choice", "checkbox", "text", "code"] as const;
@@ -253,104 +262,104 @@ const QuestionsManager = ({ test }: QuestionsManagerProps) => {
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Questions</h2>
-        <div className="flex gap-2">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={handleAddQuestion}>
-            <Plus className="mr-2 h-4 w-4" /> Add Question
+            <Plus className="h-4 w-4 mr-2" />
+            Add Question
           </Button>
-          
-          <Dialog open={isGenerationModalOpen} onOpenChange={setIsGenerationModalOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Plus className="mr-2 h-4 w-4" /> Generate Questions
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Generate Questions</DialogTitle>
-                <DialogDescription>
-                  Configure parameters for question generation
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="count" className="text-right">
-                    Count
-                  </Label>
-                  <Select 
-                    value={generationParams.count.toString()}
-                    onValueChange={(value) => setGenerationParams({...generationParams, count: parseInt(value)})}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select count" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[3, 5, 10].map(num => (
-                        <SelectItem key={num} value={num.toString()}>
-                          {num} questions
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="type" className="text-right">
-                    Type
-                  </Label>
-                  <Select
-                    value={generationParams.type}
-                    onValueChange={(value) => setGenerationParams({...generationParams, type: value})}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
-                      <SelectItem value="true-false">True/False</SelectItem>
-                      <SelectItem value="short-answer">Short Answer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <DialogFooter>
-                {generating && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generating questions...
-                  </div>
-                )}
-                <Button 
-                  onClick={generateQuestions}
-                  disabled={generating}
-                >
-                  {generating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Please wait
-                    </>
-                  ) : 'Generate'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          
-          <Button variant="outline" onClick={toggleReordering}>
-            {reordering ? (
-              <>
-                <GripVertical className="mr-2 h-4 w-4" /> Save Order
-              </>
-            ) : (
-              <>
-                <GripVertical className="mr-2 h-4 w-4" /> Reorder
-              </>
-            )}
+          <Button 
+            variant={reordering ? "default" : "outline"} 
+            onClick={toggleReordering}
+          >
+            <GripVertical className="h-4 w-4 mr-2" />
+            {reordering ? "Save Order" : "Reorder Questions"}
           </Button>
         </div>
+          
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setIsGenerationModalOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Generate Questions
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              // Экспорт вопросов
+              window.location.href = `/api/tests/${test.id}/export-questions`;
+            }}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Questions
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              // Вызываем клик по скрытому input для загрузки файла
+              const fileInput = document.getElementById('import-file') as HTMLInputElement;
+              if (fileInput) {
+                fileInput.click();
+              }
+            }}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import Questions
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+          
+        {/* Скрытый input для загрузки файла */}
+        <input
+          id="import-file"
+          type="file"
+          accept=".csv"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            
+            try {
+              const formData = new FormData();
+              formData.append('file', file);
+              
+              toast({
+                title: "Uploading...",
+                description: "Importing questions, please wait...",
+              });
+              
+              const response = await fetch(`/api/tests/${test.id}/import-questions`, {
+                method: 'POST',
+                body: formData,
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to import questions');
+              }
+              
+              const result = await response.json();
+              
+              toast({
+                title: "Import successful",
+                description: `Imported ${result.importedCount} questions successfully`,
+              });
+              
+              // Обновляем список вопросов
+              queryClient.invalidateQueries({ queryKey: ["/api/tests", test.id, "questions"] });
+            } catch (error) {
+              console.error('Import error:', error);
+              toast({
+                title: "Import failed",
+                description: error instanceof Error ? error.message : "Failed to import questions",
+                variant: "destructive",
+              });
+            } finally {
+              // Сбрасываем значение input, чтобы можно было загрузить тот же файл повторно
+              e.target.value = '';
+            }
+          }}
+        />
       </div>
 
       {isLoading ? (
@@ -480,6 +489,84 @@ const QuestionsManager = ({ test }: QuestionsManagerProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isGenerationModalOpen} onOpenChange={setIsGenerationModalOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline">
+            <Plus className="mr-2 h-4 w-4" /> Generate Questions
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generate Questions</DialogTitle>
+            <DialogDescription>
+              Configure parameters for question generation
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="count" className="text-right">
+                Count
+              </Label>
+              <Select 
+                value={generationParams.count.toString()}
+                onValueChange={(value) => setGenerationParams({...generationParams, count: parseInt(value)})}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select count" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[3, 5, 10].map(num => (
+                    <SelectItem key={num} value={num.toString()}>
+                      {num} questions
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="type" className="text-right">
+                Type
+              </Label>
+              <Select
+                value={generationParams.type}
+                onValueChange={(value) => setGenerationParams({...generationParams, type: value})}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="multiple-choice">Multiple Choice</SelectItem>
+                  <SelectItem value="true-false">True/False</SelectItem>
+                  <SelectItem value="short-answer">Short Answer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            {generating && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating questions...
+              </div>
+            )}
+            <Button 
+              onClick={generateQuestions}
+              disabled={generating}
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Please wait
+                </>
+              ) : 'Generate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
