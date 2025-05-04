@@ -1895,15 +1895,15 @@ app.post("/api/generate-questions", async (req: ExpressRequest, res: Response) =
           messages: [{
             role: 'user',
             content: `Generate ${count} ${type} questions on the test purpose '${test.name}' and the test descriptions '${test.description}'. \
-              Return ONLY pure JSON array without any Markdown formatting or additional text. \
-              Each question must have between 3 and 5 options. \
-              Required fields for each question: \
-              - 'content' (string): question text \
-              - 'options' (string[]): array of options \
-              - 'correctAnswer' (number): index of correct option (0-based) \
-              - 'type' (string): question type (${type}) \
-              Example format: \
-              [{"content":"Question text","options":["Option 1","Option 2","Option 3"],"correctAnswer":0,"type":"${type}"}]`
+Return ONLY a pure JSON array (not objects separated by commas, not markdown, not text, not code block, no explanations, no pre/post text). The response MUST start with [ and end with ]. \
+Each question must have between 3 and 5 options. \
+Required fields for each question: \
+- 'content' (string): question text \
+- 'options' (string[]): array of options \
+- 'correctAnswer' (number): index of correct option (0-based) \
+- 'type' (string): question type (${type}) \
+Example format: \
+[{"content":"Question text","options":["Option 1","Option 2","Option 3"],"correctAnswer":0,"type":"${type}"}]`
           }]
         })
       });
@@ -1924,24 +1924,50 @@ app.post("/api/generate-questions", async (req: ExpressRequest, res: Response) =
         questions = JSON.parse(rawContent);
         console.log('Successfully parsed as raw JSON');
       } catch (e) {
-        console.log('Trying to extract JSON from Markdown...');
-        const jsonMatch = rawContent.match(/```json\n([\s\S]*?)\n```/);
+        console.log('Trying to extract JSON from Markdown or fix format...');
+        // Попытка вытащить из блока ```json ... ```
+        let jsonMatch = rawContent.match(/```json\n([\s\S]*?)\n```/);
+        if (!jsonMatch) {
+          // Попытка вытащить из блока ``` ... ```
+          jsonMatch = rawContent.match(/```[\s\S]*?\n([\s\S]*?)\n```/);
+        }
         if (jsonMatch) {
           questions = JSON.parse(jsonMatch[1]);
           console.log('Successfully extracted JSON from Markdown');
         } else {
-          console.error('Failed to parse response:', rawContent);
-          throw new Error('Invalid response format from OpenRouter');
+          // Попробуем "починить" ответ: если он начинается с ] и продолжается массивом, уберём лишние скобки
+          let fixed = rawContent.trim();
+          if (fixed.startsWith("]")) {
+            fixed = fixed.replace(/^\]+/, "");
+          }
+          if (!fixed.startsWith("[")) {
+            fixed = "[" + fixed;
+          }
+          if (!fixed.endsWith("]")) {
+            fixed = fixed + "]";
+          }
+          try {
+            questions = JSON.parse(fixed);
+            console.log('Fixed and parsed as JSON array (handled leading ] bug)');
+          } catch (fixErr) {
+            console.error('Failed to parse response:', rawContent);
+            throw new Error('Invalid response format from OpenRouter');
+          }
         }
       }
       
       const savedQuestions = [];
       for (const q of questions) {
         try {
+          // Исправляем тип, если он некорректный (например, multiple-choice -> multiple_choice)
+          let normalizedType = q.type;
+          if (typeof normalizedType === 'string') {
+            normalizedType = normalizedType.replace(/-/g, '_');
+          }
           const saved = await storage.createQuestion({
             testId,
             content: q.content,
-            type: q.type || type,
+            type: normalizedType || type,
             options: q.options,
             correctAnswer: q.correctAnswer,
             points: q.points || 1,
