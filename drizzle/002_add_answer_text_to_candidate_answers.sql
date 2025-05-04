@@ -9,5 +9,6 @@ BEGIN
   END IF;
 END $$;
 
--- Make answer_text column in candidate_answers NOT NULL to match the current application logic (answerText is always present in the answer)
+UPDATE candidate_answers SET answer_text = '{}' WHERE answer_text IS NULL;
+
 ALTER TABLE candidate_answers ALTER COLUMN answer_text SET NOT NULL;
