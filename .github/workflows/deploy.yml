@@ -145,7 +145,7 @@ jobs:
                 echo "Service is running!"
                 break
               else
-                echo "Attempt $i: Service not ready yet, waiting..."
+                echo "Attempt ${i}: Service not ready yet, waiting..."
                 sleep 10
               fi
             done
@@ -252,7 +252,7 @@ jobs:
                   echo "Service failed to start after rollback!"
                   exit 1
                 else
-                  echo "Attempt $i: Service not ready yet, waiting..."
+                  echo "Attempt ${i}: Service not ready yet, waiting..."
                   sleep 10
                 fi
               fi

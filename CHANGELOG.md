@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved: Removed debug output from UI and console for production cleanliness.
 - Prevented an error in the deploy workflow when no containers are found for `docker logs` (now logs are shown only if containers exist, otherwise a clear message is printed instead of an error).
 - Improved diagnostics in deploy workflow: if no containers are found for the main image, the script now outputs all containers (docker ps -a), Docker info, and disk space usage (df -h) to help with troubleshooting.
+- Fixed: Attempt counter in deploy workflow logs now correctly displays the current attempt number using ${i}.
 
 ## [1.0.4] - 2025-05-04
 ### Fixed
