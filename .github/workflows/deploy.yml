@@ -152,7 +152,18 @@ jobs:
             # Если сервис не запустился, вывести логи контейнера
             if ! curl --silent --fail http://localhost:5005; then
               echo "Service failed to start! Showing container logs:"
-              docker logs $(docker ps -a -q --filter ancestor=ghcr.io/brrovko/skillchecker.tech:main --format="{{.ID}}") || true
+              CONTAINER_IDS=$(docker ps -a -q --filter ancestor=ghcr.io/brrovko/skillchecker.tech:main --format="{{.ID}}")
+              if [ -n "$CONTAINER_IDS" ]; then
+                docker logs $CONTAINER_IDS
+              else
+                echo "No containers found for image ghcr.io/brrovko/skillchecker.tech:main"
+                echo "Listing all containers:"
+                docker ps -a
+                echo "Docker info:"
+                docker info
+                echo "Disk space usage:"
+                df -h
+              fi
               exit 1
             fi
 

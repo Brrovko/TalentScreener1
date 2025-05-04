@@ -5,14 +5,17 @@ All notable changes to the SkillChecker project will be documented in this file.
 This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
+## [1.0.5] - 2025-05-05
 ### Added
+- CHANGELOG.md file to track all project changes
+- Implemented backend endpoint GET `/api/sessions/:sessionId/answers` to fetch all candidate answers for a session with question details.
+- Added UI for detailed candidate session answers: clicking on a test in candidate details now shows a page with all questions, answers, and correctness status.
 - CHANGELOG.md file to track all project changes
 - Implemented backend endpoint GET `/api/sessions/:sessionId/answers` to fetch all candidate answers for a session with question details.
 - Added UI for detailed candidate session answers: clicking on a test in candidate details now shows a page with all questions, answers, and correctness status.
 
 ### Changed
+- Clarified in `test/api-plan.md` that E2E API tests are performed via HTTP requests to real services running in Docker Compose (docker-compose.yml), both locally and in CI. Emphasized that no in-memory or mocked Express injection is used for E2E tests.
 - Clarified in `test/api-plan.md` that E2E API tests are performed via HTTP requests to real services running in Docker Compose (docker-compose.yml), both locally and in CI. Emphasized that no in-memory or mocked Express injection is used for E2E tests.
 
 ### Fixed
@@ -22,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: Unique React keys for test sessions in candidate details page to avoid duplication and React warnings.
 - Fixed: Each test session now links to its unique session, even if the candidate took the same test multiple times.
 - Improved: Removed debug output from UI and console for production cleanliness.
+- Prevented an error in the deploy workflow when no containers are found for `docker logs` (now logs are shown only if containers exist, otherwise a clear message is printed instead of an error).
+- Improved diagnostics in deploy workflow: if no containers are found for the main image, the script now outputs all containers (docker ps -a), Docker info, and disk space usage (df -h) to help with troubleshooting.
 
 ## [1.0.4] - 2025-05-04
 ### Fixed
