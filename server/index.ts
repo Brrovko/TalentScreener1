@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express, { type Request, Response, NextFunction } from "express";
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { runMigrations, seedDatabase } from "./migrations";
@@ -10,6 +12,62 @@ import { PgStorage } from "./pg-storage";
 import { setStorage } from "./storage";
 
 const app = express();
+
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'SkillChecker API',
+      version: '1.0.0',
+      description: 'API documentation for SkillChecker platform',
+    },
+    servers: [
+      {
+        url: 'http://localhost:5005',
+        description: 'Development server',
+      },
+    ],
+    components: {
+      schemas: {
+        Test: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer' },
+            name: { type: 'string' },
+            description: { type: 'string' },
+            category: { type: 'string' },
+            timeLimit: { type: 'integer' },
+            passingScore: { type: 'integer' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        TestInput: {
+          type: 'object',
+          required: ['name', 'description'],
+          properties: {
+            name: { type: 'string' },
+            description: { type: 'string' },
+            category: { type: 'string' },
+            timeLimit: { type: 'integer' },
+            passingScore: { type: 'integer' }
+          }
+        }
+      },
+      securitySchemes: {
+        sessionAuth: {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'connect.sid'
+        }
+      }
+    }
+  },
+  apis: ['./server/routes.ts'], // files containing annotations
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -42,6 +100,9 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Serve Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 (async () => {
   // Запускаем миграции базы данных

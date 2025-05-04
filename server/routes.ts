@@ -1,4 +1,18 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Response } from "express";
+import type { Request as ExpressRequest } from "express";
+import type { Multer } from "multer";
+
+declare global {
+  namespace Express {
+    interface Request {
+      file?: Express.Multer.File;
+      files?: {
+        [fieldname: string]: Express.Multer.File[];
+      } | Express.Multer.File[] | undefined;
+    }
+  }
+}
+
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -20,7 +34,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   setupAuth(app);
   // Tests routes
-  app.get("/api/tests", async (req: Request, res: Response) => {
+  /**
+   * @swagger
+   * tags:
+   *   name: Tests
+   *   description: Test management
+   */
+
+  /**
+   * @swagger
+   * /api/tests:
+   *   get:
+   *     summary: Get all tests
+   *     tags: [Tests]
+   *     responses:
+   *       200:
+   *         description: List of all tests
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Test'
+   *       500:
+   *         description: Server error
+   */
+  app.get("/api/tests", async (req: ExpressRequest, res: Response) => {
     try {
       const tests = await storage.getAllTests();
       res.json(tests);
@@ -29,7 +68,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tests/:id", async (req: Request, res: Response) => {
+  /**
+   * @swagger
+   * /api/tests/{id}:
+   *   get:
+   *     summary: Get test by ID
+   *     tags: [Tests]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         schema:
+   *           type: integer
+   *         required: true
+   *         description: Test ID
+   *     responses:
+   *       200:
+   *         description: Test details
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Test'
+   *       404:
+   *         description: Test not found
+   *       500:
+   *         description: Server error
+   */
+  app.get("/api/tests/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const test = await storage.getTest(id);
@@ -44,7 +108,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tests", async (req: Request, res: Response) => {
+  /**
+   * @swagger
+   * /api/tests:
+   *   post:
+   *     summary: Create new test
+   *     tags: [Tests]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/TestInput'
+   *     responses:
+   *       201:
+   *         description: Created test
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Test'
+   *       400:
+   *         description: Invalid input data
+   *       500:
+   *         description: Server error
+   */
+  app.post("/api/tests", async (req: ExpressRequest, res: Response) => {
     try {
       const validatedData = insertTestSchema.parse(req.body);
       const test = await storage.createTest(validatedData);
@@ -62,7 +150,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/tests/:id", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/tests/{id}:
+ *   patch:
+ *     summary: Update test by ID
+ *     tags: [Tests]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Test ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               timeLimit:
+ *                 type: integer
+ *               passingScore:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Updated test
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Test'
+ *       400:
+ *         description: Invalid input data
+ *       404:
+ *         description: Test not found
+ *       500:
+ *         description: Server error
+ */
+app.patch("/api/tests/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertTestSchema.partial().parse(req.body);
@@ -86,7 +218,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/tests/:id", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/tests/{id}:
+ *   delete:
+ *     summary: Delete test by ID
+ *     tags: [Tests]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Test ID
+ *     responses:
+ *       204:
+ *         description: Test successfully deleted
+ *       404:
+ *         description: Test not found
+ *       500:
+ *         description: Server error
+ */
+app.delete("/api/tests/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteTest(id);
@@ -102,7 +255,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Questions routes
-  app.get("/api/tests/:id/questions", async (req: Request, res: Response) => {
+  /**
+   * @swagger
+   * tags:
+   *   name: Questions
+   *   description: Question management
+   */
+  /**
+ * @swagger
+ * /api/tests/{id}/questions:
+ *   get:
+ *     summary: Get questions for a test
+ *     tags: [Questions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Test ID
+ *     responses:
+ *       200:
+ *         description: List of questions for the test
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   testId:
+ *                     type: integer
+ *                   content:
+ *                     type: string
+ *                   type:
+ *                     type: string
+ *                   options:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   correctAnswer:
+ *                     type: any
+ *                   points:
+ *                     type: integer
+ *                   order:
+ *                     type: integer
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/tests/:id/questions", async (req: ExpressRequest, res: Response) => {
     try {
       const testId = parseInt(req.params.id);
       const questions = await storage.getQuestionsByTestId(testId);
@@ -113,7 +316,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/questions", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/questions:
+ *   post:
+ *     summary: Create a new question
+ *     tags: [Questions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - testId
+ *               - content
+ *               - type
+ *             properties:
+ *               testId:
+ *                 type: integer
+ *               content:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [multiple_choice, checkbox, text, code]
+ *               options:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               correctAnswer:
+ *                 type: any
+ *               points:
+ *                 type: integer
+ *               order:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Created question
+ *       400:
+ *         description: Invalid input data
+ *       500:
+ *         description: Server error
+ */
+app.post("/api/questions", async (req: ExpressRequest, res: Response) => {
     try {
       const validatedData = insertQuestionSchema.parse(req.body);
       const question = await storage.createQuestion(validatedData);
@@ -131,7 +376,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/questions/:id", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/questions/{id}:
+ *   patch:
+ *     summary: Update question by ID
+ *     tags: [Questions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Question ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [multiple_choice, checkbox, text, code]
+ *               options:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               correctAnswer:
+ *                 type: any
+ *               points:
+ *                 type: integer
+ *               order:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Updated question
+ *       400:
+ *         description: Invalid input data
+ *       404:
+ *         description: Question not found
+ *       500:
+ *         description: Server error
+ */
+app.patch("/api/questions/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertQuestionSchema.partial().parse(req.body);
@@ -155,7 +445,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/questions/:id", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/questions/{id}:
+ *   delete:
+ *     summary: Delete question by ID
+ *     tags: [Questions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Question ID
+ *     responses:
+ *       204:
+ *         description: Question successfully deleted
+ *       404:
+ *         description: Question not found
+ *       500:
+ *         description: Server error
+ */
+app.delete("/api/questions/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteQuestion(id);
@@ -170,7 +481,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tests/:id/reorder-questions", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/tests/{id}/reorder-questions:
+ *   post:
+ *     summary: Reorder questions for a test
+ *     tags: [Questions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Test ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - questionIds
+ *             properties:
+ *               questionIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array of question IDs in the desired order
+ *     responses:
+ *       200:
+ *         description: Questions successfully reordered
+ *       400:
+ *         description: Invalid input data
+ *       500:
+ *         description: Server error
+ */
+app.post("/api/tests/:id/reorder-questions", async (req: ExpressRequest, res: Response) => {
     try {
       const testId = parseInt(req.params.id);
       const { questionIds } = req.body;
@@ -192,7 +538,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Candidates routes
-  app.get("/api/candidates", async (req: Request, res: Response) => {
+  /**
+   * @swagger
+   * tags:
+   *   name: Candidates
+   *   description: Candidate management
+   */
+  /**
+ * @swagger
+ * /api/candidates:
+ *   get:
+ *     summary: Get all candidates
+ *     tags: [Candidates]
+ *     responses:
+ *       200:
+ *         description: List of all candidates
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *                   phone:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/candidates", async (req: ExpressRequest, res: Response) => {
     try {
       const candidates = await storage.getAllCandidates();
       res.json(candidates);
@@ -201,7 +583,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/candidates/:id", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/candidates/{id}:
+ *   get:
+ *     summary: Get candidate by ID
+ *     tags: [Candidates]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Candidate ID
+ *     responses:
+ *       200:
+ *         description: Candidate details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 phone:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *       404:
+ *         description: Candidate not found
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/candidates/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const candidate = await storage.getCandidate(id);
@@ -216,7 +635,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/candidates", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/candidates:
+ *   post:
+ *     summary: Create a new candidate
+ *     tags: [Candidates]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Created candidate
+ *       400:
+ *         description: Invalid input data
+ *       500:
+ *         description: Server error
+ */
+app.post("/api/candidates", async (req: ExpressRequest, res: Response) => {
     try {
       const validatedData = insertCandidateSchema.parse(req.body);
       const candidate = await storage.createCandidate(validatedData);
@@ -235,7 +684,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test sessions routes
-  app.get("/api/tests/:id/sessions", async (req: Request, res: Response) => {
+  /**
+   * @swagger
+   * tags:
+   *   name: Test Sessions
+   *   description: Test session management
+   */
+  /**
+ * @swagger
+ * /api/tests/{id}/sessions:
+ *   get:
+ *     summary: Get test sessions for a test
+ *     tags: [Test Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Test ID
+ *     responses:
+ *       200:
+ *         description: List of test sessions for the specified test
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   testId:
+ *                     type: integer
+ *                   candidateId:
+ *                     type: integer
+ *                   token:
+ *                     type: string
+ *                   status:
+ *                     type: string
+ *                   startedAt:
+ *                     type: string
+ *                     format: date-time
+ *                   completedAt:
+ *                     type: string
+ *                     format: date-time
+ *                   expiresAt:
+ *                     type: string
+ *                     format: date-time
+ *                   score:
+ *                     type: integer
+ *                   percentScore:
+ *                     type: integer
+ *                   passed:
+ *                     type: boolean
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/tests/:id/sessions", async (req: ExpressRequest, res: Response) => {
     try {
       const testId = parseInt(req.params.id);
       const sessions = await storage.getTestSessionsByTestId(testId);
@@ -246,7 +752,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/candidates/:id/sessions", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/candidates/{id}/sessions:
+ *   get:
+ *     summary: Get test sessions for a candidate
+ *     tags: [Test Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Candidate ID
+ *     responses:
+ *       200:
+ *         description: List of test sessions for the candidate
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   testId:
+ *                     type: integer
+ *                   candidateId:
+ *                     type: integer
+ *                   token:
+ *                     type: string
+ *                   status:
+ *                     type: string
+ *                   startedAt:
+ *                     type: string
+ *                     format: date-time
+ *                   completedAt:
+ *                     type: string
+ *                     format: date-time
+ *                   expiresAt:
+ *                     type: string
+ *                     format: date-time
+ *                   score:
+ *                     type: integer
+ *                   percentScore:
+ *                     type: integer
+ *                   passed:
+ *                     type: boolean
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/candidates/:id/sessions", async (req: ExpressRequest, res: Response) => {
     try {
       const candidateId = parseInt(req.params.id);
       const sessions = await storage.getTestSessionsByCandidateId(candidateId);
@@ -258,7 +815,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Endpoint to get all test sessions
-  app.get("/api/tests/sessions", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/tests/sessions:
+ *   get:
+ *     summary: Get all test sessions
+ *     tags: [Test Sessions]
+ *     responses:
+ *       200:
+ *         description: List of all test sessions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   testId:
+ *                     type: integer
+ *                   candidateId:
+ *                     type: integer
+ *                   token:
+ *                     type: string
+ *                   status:
+ *                     type: string
+ *                   startedAt:
+ *                     type: string
+ *                     format: date-time
+ *                   completedAt:
+ *                     type: string
+ *                     format: date-time
+ *                   expiresAt:
+ *                     type: string
+ *                     format: date-time
+ *                   score:
+ *                     type: integer
+ *                   percentScore:
+ *                     type: integer
+ *                   passed:
+ *                     type: boolean
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/tests/sessions", async (req: ExpressRequest, res: Response) => {
     try {
       // Get sessions for all tests
       const sessions = [];
@@ -275,7 +876,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/sessions", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/sessions:
+ *   post:
+ *     summary: Create a new test session
+ *     tags: [Test Sessions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - testId
+ *               - candidateId
+ *             properties:
+ *               testId:
+ *                 type: integer
+ *               candidateId:
+ *                 type: integer
+ *               expiresAt:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       201:
+ *         description: Created test session
+ *       400:
+ *         description: Invalid input data
+ *       500:
+ *         description: Server error
+ */
+app.post("/api/sessions", async (req: ExpressRequest, res: Response) => {
     try {
       // Конвертируем строку даты в объект Date
       let sessionData = {
@@ -305,7 +937,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/sessions/:id", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/sessions/{id}:
+ *   patch:
+ *     summary: Update test session by ID
+ *     tags: [Test Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Session ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *               startedAt:
+ *                 type: string
+ *                 format: date-time
+ *               completedAt:
+ *                 type: string
+ *                 format: date-time
+ *               expiresAt:
+ *                 type: string
+ *                 format: date-time
+ *               score:
+ *                 type: integer
+ *               percentScore:
+ *                 type: integer
+ *               passed:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Updated test session
+ *       404:
+ *         description: Session not found
+ *       500:
+ *         description: Server error
+ */
+app.patch("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const session = await storage.getTestSession(id);
@@ -323,7 +1000,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test session by token endpoint - for candidates to take tests
-  app.get("/api/sessions/token/:token", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/sessions/token/{token}:
+ *   get:
+ *     summary: Get test session by token
+ *     tags: [Test Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Session token
+ *     responses:
+ *       200:
+ *         description: Session details with test and questions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 session:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     testId:
+ *                       type: integer
+ *                     candidateId:
+ *                       type: integer
+ *                     token:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     startedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     expiresAt:
+ *                       type: string
+ *                       format: date-time
+ *                 test:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     category:
+ *                       type: string
+ *                     timeLimit:
+ *                       type: integer
+ *                 candidate:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *                 questions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       content:
+ *                         type: string
+ *                       type:
+ *                         type: string
+ *                       options:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       points:
+ *                         type: integer
+ *                       order:
+ *                         type: integer
+ *       403:
+ *         description: Session expired
+ *       404:
+ *         description: Session not found
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/sessions/token/:token", async (req: ExpressRequest, res: Response) => {
     try {
       const token = req.params.token;
       const session = await storage.getTestSessionByToken(token);
@@ -381,7 +1144,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Submit answers
-  app.post("/api/sessions/:token/submit", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/sessions/{token}/submit:
+ *   post:
+ *     summary: Submit test answers
+ *     tags: [Test Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Session token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - answers
+ *             properties:
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - questionId
+ *                     - answer
+ *                   properties:
+ *                     questionId:
+ *                       type: integer
+ *                     answer:
+ *                       type: any
+ *                       description: Can be a string, number, or array depending on question type
+ *     responses:
+ *       200:
+ *         description: Test results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 score:
+ *                   type: integer
+ *                 totalPossibleScore:
+ *                   type: integer
+ *                 percentScore:
+ *                   type: integer
+ *                 passed:
+ *                   type: boolean
+ *                 passingThreshold:
+ *                   type: integer
+ *                 session:
+ *                   type: object
+ *       400:
+ *         description: Invalid input data or test already completed
+ *       403:
+ *         description: Session expired
+ *       404:
+ *         description: Session not found
+ *       500:
+ *         description: Server error
+ */
+app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Response) => {
     try {
       const token = req.params.token;
       const { answers } = req.body;
@@ -503,7 +1330,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Start a test session
-  app.post("/api/sessions/:token/start", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/sessions/{token}/start:
+ *   post:
+ *     summary: Start a test session
+ *     tags: [Test Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Session token
+ *     responses:
+ *       200:
+ *         description: Started test session
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 testId:
+ *                   type: integer
+ *                 candidateId:
+ *                   type: integer
+ *                 token:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                   enum: [created, in_progress, completed]
+ *                 startedAt:
+ *                   type: string
+ *                   format: date-time
+ *       400:
+ *         description: Test already completed
+ *       403:
+ *         description: Session expired
+ *       404:
+ *         description: Session not found
+ *       500:
+ *         description: Server error
+ */
+app.post("/api/sessions/:token/start", async (req: ExpressRequest, res: Response) => {
     try {
       const token = req.params.token;
       
@@ -535,7 +1406,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Dashboard stats
-  app.get("/api/stats", async (req: Request, res: Response) => {
+  /**
+   * @swagger
+   * tags:
+   *   name: Dashboard
+   *   description: Dashboard statistics
+   */
+  /**
+ * @swagger
+ * /api/stats:
+ *   get:
+ *     summary: Get test statistics for dashboard
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Test statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalTests:
+ *                   type: integer
+ *                 totalCandidates:
+ *                   type: integer
+ *                 totalSessions:
+ *                   type: integer
+ *                 completedSessions:
+ *                   type: integer
+ *                 averageScore:
+ *                   type: number
+ *                 passRate:
+ *                   type: number
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/stats", async (req: ExpressRequest, res: Response) => {
     try {
       const stats = await storage.getTestStats();
       res.json(stats);
@@ -544,7 +1450,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/recent-activity", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/recent-activity:
+ *   get:
+ *     summary: Get recent activity for dashboard
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Recent test activity
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   type:
+ *                     type: string
+ *                   timestamp:
+ *                     type: string
+ *                     format: date-time
+ *                   details:
+ *                     type: object
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/recent-activity", async (req: ExpressRequest, res: Response) => {
     try {
       const activity = await storage.getRecentActivity();
       res.json(activity);
@@ -554,7 +1488,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management routes - Administrator only
-  app.get("/api/users", requireRole("admin"), async (req: Request, res: Response) => {
+  /**
+   * @swagger
+   * tags:
+   *   name: Users
+   *   description: User management
+   */
+  /**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Get all users (admin only)
+ *     tags: [Users]
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   username:
+ *                     type: string
+ *                   fullName:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *                   role:
+ *                     type: string
+ *                   active:
+ *                     type: boolean
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized (requires admin role)
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/users", requireRole("admin"), async (req: ExpressRequest, res: Response) => {
     try {
       const users = await storage.getAllUsers();
       res.json(users);
@@ -563,7 +1540,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/users/:id", requireRole("admin"), async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/users/{id}:
+ *   patch:
+ *     summary: Update user (admin only)
+ *     tags: [Users]
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               fullName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               active:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Updated user
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized (requires admin role)
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+app.patch("/api/users/:id", requireRole("admin"), async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       // Не разрешаем изменять пароль через этот маршрут
@@ -581,7 +1602,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users/:id/reset-password", requireRole("admin"), async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/users/{id}/reset-password:
+ *   post:
+ *     summary: Reset user password (admin only)
+ *     tags: [Users]
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newPassword
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Invalid password
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized (requires admin role)
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+app.post("/api/users/:id/reset-password", requireRole("admin"), async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const { newPassword } = req.body;
@@ -611,7 +1673,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Change password route - for users to change their own password
-  app.post("/api/change-password", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/change-password:
+ *   post:
+ *     summary: Change own password
+ *     tags: [Users]
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Invalid passwords or current password incorrect
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+app.post("/api/change-password", async (req: ExpressRequest, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -661,7 +1758,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/generate-questions", async (req: Request, res: Response) => {
+  /**
+ * @swagger
+ * /api/generate-questions:
+ *   post:
+ *     summary: Generate questions using AI
+ *     tags: [Questions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - count
+ *               - type
+ *               - testId
+ *             properties:
+ *               count:
+ *                 type: integer
+ *                 description: Number of questions to generate
+ *               type:
+ *                 type: string
+ *                 enum: [multiple_choice, checkbox, text, code]
+ *                 description: Type of questions to generate
+ *               testId:
+ *                 type: integer
+ *                 description: ID of the test to add questions to
+ *     responses:
+ *       200:
+ *         description: Generated questions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       400:
+ *         description: Invalid input data
+ *       404:
+ *         description: Test not found
+ *       500:
+ *         description: Server error or AI service error
+ */
+app.post("/api/generate-questions", async (req: ExpressRequest, res: Response) => {
     try {
       const { count, type, testId } = req.body;
       
@@ -764,7 +1904,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Экспорт вопросов в CSV
-  app.get("/api/tests/:id/export-questions", async (req: Request, res: Response) => {
+  /**
+   * @swagger
+   * tags:
+   *   name: Import/Export
+   *   description: Questions import and export
+   */
+  /**
+ * @swagger
+ * /api/tests/{id}/export-questions:
+ *   get:
+ *     summary: Export questions as CSV
+ *     tags: [Import/Export]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Test ID
+ *     responses:
+ *       200:
+ *         description: CSV file with questions
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/tests/:id/export-questions", async (req: ExpressRequest, res: Response) => {
     try {
       const testId = parseInt(req.params.id);
       const questions = await storage.getQuestionsByTestId(testId);
@@ -789,9 +1959,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Импорт вопросов из CSV
-  app.post("/api/tests/:id/import-questions", 
+  /**
+ * @swagger
+ * /api/tests/{id}/import-questions:
+ *   post:
+ *     summary: Import questions from CSV
+ *     tags: [Import/Export]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Test ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file with questions
+ *     responses:
+ *       200:
+ *         description: Imported questions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 importedCount:
+ *                   type: integer
+ *                 questions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Invalid CSV format or no file uploaded
+ *       500:
+ *         description: Server error
+ */
+app.post("/api/tests/:id/import-questions", 
     upload.single('file'),
-    async (req, res) => {
+    async (req: ExpressRequest, res: Response) => {
       try {
         const testId = parseInt(req.params.id);
         const file = req.file;
