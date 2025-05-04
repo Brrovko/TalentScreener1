@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the plan for implementing End-to-End (E2E) API tests for the SkillChecker application. These tests will verify that the API endpoints function correctly by making real HTTP requests to a running instance of the application.
+This document outlines the plan for implementing End-to-End (E2E) API tests for the SkillChecker application. These tests verify API endpoints by making real HTTP requests to a running instance of the application, deployed as real services using Docker Compose (docker-compose.yml). All API tests interact with the application strictly via HTTP, ensuring the test environment closely matches production conditions. No in-memory or direct Express injection is used for E2E tests.
 
 ## Technology Stack
 
@@ -15,7 +15,6 @@ This document outlines the plan for implementing End-to-End (E2E) API tests for 
   - jest-html-reporters for advanced HTML reports with visualizations
 - **Language**: TypeScript
 - **Environment Management**: dotenv for test environment variables
-- **Mock Service**: MSW (Mock Service Worker) for external API mocks (OpenRouter)
 
 ### Justification
 
@@ -24,7 +23,6 @@ Jest and Supertest provide a powerful combination for API testing:
 - Supertest simplifies making HTTP requests and asserting responses
 - TypeScript ensures type safety and better IDE support
 - Enhanced reporting system with detailed HTTP logging provides transparency and simplifies debugging
-- MSW allows mocking external API calls to OpenRouter for predictable test results
 
 ## Directory Structure
 
@@ -42,7 +40,6 @@ test/
       auth.ts           # Authentication helpers
       request.ts        # Request helpers
       testUtils.ts      # Utilities for test data setup and teardown via API
-      mocks.ts          # API mock setup for external services
       logger.ts         # HTTP request/response logger
     tests/              # Test files organized by resource
       tests.test.ts
@@ -116,6 +113,8 @@ Tests will be organized by resource type, with separate test files for each API 
 - Authentication
 - AI Question Generation API
 
+All tests are executed via HTTP to the real application instance running in Docker Compose. This ensures that the tests validate the actual deployed service behavior, including network, configuration, and integration aspects.
+
 Within each test file, tests will be grouped by HTTP method (GET, POST, PATCH, DELETE) and functionality.
 
 ### Test Scope
@@ -132,8 +131,6 @@ The API tests will cover:
    - Test scoring
    - Test session management
    - Permission-based access control
-4. **Integration with external services**:
-   - OpenRouter AI for question generation (mocked in tests)
 
 ### Test Data Management
 
@@ -593,7 +590,6 @@ Create helper functions for:
 - Request handling
 - Test data creation and cleanup via the API
 - HTTP request/response logging
-- Mock services
 
 ### 5. Implement Test Fixtures
 
@@ -634,10 +630,12 @@ Add a CI workflow to run the E2E tests on pull requests or deployments, includin
 
 To run the E2E API tests locally:
 
-1. Start the application with Docker Compose:
+1. Start the application with Docker Compose (which spins up all real services):
    ```bash
    docker-compose up -d
    ```
+
+   The tests will interact with the running services via HTTP, exactly as a real client would.
 
 2. Run the tests:
    ```bash
@@ -646,7 +644,7 @@ To run the E2E API tests locally:
 
 ### CI Environment
 
-For CI pipelines, create a separate docker-compose configuration:
+For CI pipelines, create a separate docker-compose configuration (docker-compose.test.yml) if needed, but the principle remains the same: tests are executed against the real running services via HTTP.
 
 ```yaml
 # docker-compose.test.yml
@@ -661,15 +659,6 @@ Run tests in CI:
 docker-compose -f docker-compose.test.yml up -d
 npm run test:e2e
 docker-compose -f docker-compose.test.yml down
-```
-
-Add the following scripts to package.json:
-```json
-"scripts": {
-  "test:e2e": "jest --config jest-e2e.config.js",
-  "test:e2e:ci": "docker-compose -f docker-compose.test.yml up -d && jest --config jest-e2e.config.js && docker-compose -f docker-compose.test.yml down",
-  "test:e2e:coverage": "jest --config jest-e2e.config.js --coverage"
-}
 ```
 
 ## Test Report
@@ -708,7 +697,6 @@ After implementing the initial test suite, establish a process for:
 - [ ] Implement authentication helpers
 - [ ] Implement request helpers with HTTP logging
 - [ ] Implement HTTP request/response logger
-- [ ] Set up mock services
 - [ ] Create test fixtures
 - [ ] Implement tests for authentication with logging
 - [ ] Implement tests for Tests API with logging

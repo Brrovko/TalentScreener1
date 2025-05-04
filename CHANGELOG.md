@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - CHANGELOG.md file to track all project changes
+- Implemented backend endpoint GET `/api/sessions/:sessionId/answers` to fetch all candidate answers for a session with question details.
+- Added UI for detailed candidate session answers: clicking on a test in candidate details now shows a page with all questions, answers, and correctness status.
+
+### Changed
+- Clarified in `test/api-plan.md` that E2E API tests are performed via HTTP requests to real services running in Docker Compose (docker-compose.yml), both locally and in CI. Emphasized that no in-memory or mocked Express injection is used for E2E tests.
+
+### Fixed
+- Fixed dashboard crash by switching to static import for candidate session details page in App.tsx.
+- Fixed answer rendering for multiple choice: now shows option text instead of index.
 
 ## [1.0.4] - 2025-05-04
 ### Fixed

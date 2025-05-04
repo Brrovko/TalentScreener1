@@ -999,6 +999,68 @@ app.patch("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
     }
   });
 
+  /**
+ * @swagger
+ * /api/sessions/{id}:
+ *   get:
+ *     summary: Get session by ID
+ *     tags: [Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Session ID
+ *     responses:
+ *       200:
+ *         description: Session details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 testId:
+ *                   type: integer
+ *                 candidateId:
+ *                   type: integer
+ *                 token:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                 startedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 expiresAt:
+ *                   type: string
+ *                   format: date-time
+ *                 test:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *       404:
+ *         description: Session not found
+ *       500:
+ *         description: Server error
+ */
+app.get("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const session = await storage.getTestSession(id);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      // enrich with test name
+      const test = await storage.getTest(session.testId);
+      res.json({ ...session, test });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch session" });
+    }
+  });
+
   // Test session by token endpoint - for candidates to take tests
   /**
  * @swagger
@@ -2073,6 +2135,53 @@ app.post("/api/tests/:id/import-questions",
       }
     }
   );
+
+  /**
+   * @swagger
+   * /api/sessions/{sessionId}/answers:
+   *   get:
+   *     summary: Get all candidate answers for a session
+   *     tags: [Sessions]
+   *     parameters:
+   *       - in: path
+   *         name: sessionId
+   *         schema:
+   *           type: integer
+   *         required: true
+   *         description: Session ID
+   *     responses:
+   *       200:
+   *         description: List of candidate answers for the session
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 type: object
+   *       404:
+   *         description: Session not found
+   *       500:
+   *         description: Server error
+   */
+  app.get("/api/sessions/:sessionId/answers", async (req: ExpressRequest, res: Response) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const session = await storage.getTestSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      const answers = await storage.getCandidateAnswersBySessionId(sessionId);
+      // enrich with question text
+      const questions = await storage.getQuestionsByTestId(session.testId);
+      const answersWithQuestions = answers.map(a => ({
+        ...a,
+        question: questions.find(q => q.id === a.questionId) || null
+      }));
+      res.json(answersWithQuestions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch candidate answers" });
+    }
+  });
 
   const httpServer = createServer(app);
 

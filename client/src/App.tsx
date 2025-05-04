@@ -17,6 +17,7 @@ import AuthPage from "@/pages/main-page";
 
 // Importing test-taking component
 import TakeTestPage from "./pages/take-test";
+import CandidateSessionDetails from "@/pages/candidate-session-details";
 
 function Router() {
   const [location] = useLocation();
@@ -73,6 +74,11 @@ function Router() {
             <ProtectedRoute 
               path="/dashboard/candidates/:id" 
               component={CandidateDetails}
+              requiredRoles={["admin", "recruiter", "interviewer"]} 
+            />
+            <ProtectedRoute 
+              path="/dashboard/candidates/:candidateId/session/:sessionId" 
+              component={CandidateSessionDetails}
               requiredRoles={["admin", "recruiter", "interviewer"]} 
             />
             <ProtectedRoute 

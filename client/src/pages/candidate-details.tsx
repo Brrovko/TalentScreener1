@@ -95,17 +95,18 @@ const CandidateDetails = () => {
   };
 
   // Filter sessions based on search term
-  const filteredSessions = useMemo(() => {
-    if (!filter.trim()) return sessions;
-    
-    return sessions.filter(session => {
-      const testName = session.test?.name || `Test #${session.testId}`;
-      const category = session.test?.category || "Uncategorized";
-      
-      return testName.toLowerCase().includes(filter.toLowerCase()) ||
-             category.toLowerCase().includes(filter.toLowerCase());
-    });
-  }, [sessions, filter]);
+  const filteredSessionsWithTests = useMemo(() => {
+    return sessionsWithTests
+      .map((q) => q.data ?? null)
+      .filter((session): session is NonNullable<typeof sessionsWithTests[number]["data"]> => session !== null)
+      .filter(session => {
+        if (!filter.trim()) return true;
+        const testName = session.test?.name || `Test #${session.testId}`;
+        const category = session.test?.category || "Uncategorized";
+        return testName.toLowerCase().includes(filter.toLowerCase()) ||
+               category.toLowerCase().includes(filter.toLowerCase());
+      });
+  }, [sessionsWithTests, filter]);
 
   // Handle manual refresh of sessions
   const handleRefreshSessions = () => {
@@ -265,67 +266,138 @@ const CandidateDetails = () => {
               <TabsContent value="active" className="space-y-4">
                 {isLoadingSessions ? (
                   <div className="text-center py-8">{t('common.loading')}</div>
-                ) : filteredSessions.filter(s => s.status !== "completed").length === 0 ? (
+                ) : filteredSessionsWithTests.filter(s => s.status !== "completed").length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     {filter.trim() ? t('common.no_filter_results') : t('candidates.no_active_tests', 'No active tests found for this candidate')}
                   </div>
                 ) : (
-                  filteredSessions
+                  filteredSessionsWithTests
                     .filter(session => session.status !== "completed")
-                    .map(session => (
-                      <div key={session.id} className="border rounded-md p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-medium">
-                            {session.test?.name || `${t('candidates.test', 'Test')} #${session.testId}`}
-                          </div>
-                          <Badge variant={getStatusBadgeVariant(session.status)}>
-                            {session.status === "in_progress" ? t('candidates.in_progress') : t('candidates.pending')}
-                          </Badge>
-                        </div>
-                        
-                        <div className="text-sm text-muted-foreground mb-2">
-                          {session.test?.category || t('candidates.uncategorized', 'Uncategorized')}
-                        </div>
-                        
-                        <div className="flex justify-between items-center mt-4 text-sm">
-                          <div>
-                            <div>{t('candidates.expires', 'Expires')}: {new Date(session.expiresAt).toLocaleDateString()}</div>
-                            {session.startedAt && (
-                              <div>{t('candidates.started', 'Started')}: {new Date(session.startedAt).toLocaleString()}</div>
-                            )}
+                    .map(session => {
+                      if (!session) return null;
+                      return (
+                        <div key={session.id} className="border rounded-md p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium">
+                              <Link to={`/dashboard/candidates/${candidateId}/session/${session.id}`} className="text-blue-600 hover:underline">
+                                {session.test?.name || t('candidates.unnamed_test', 'Unnamed test')}
+                              </Link>
+                            </div>
+                            <Badge variant={getStatusBadgeVariant(session.status)}>
+                              {session.status === "in_progress" ? t('candidates.in_progress') : t('candidates.pending')}
+                            </Badge>
                           </div>
                           
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleCopyTestLink(session.token)}
-                          >
-                            {t('candidates.copy_link', 'Copy Link')}
-                          </Button>
+                          <div className="text-sm text-muted-foreground mb-2">
+                            {session.test?.category || t('candidates.uncategorized', 'Uncategorized')}
+                          </div>
+                          
+                          <div className="flex justify-between items-center mt-4 text-sm">
+                            <div>
+                              <div>{t('candidates.expires', 'Expires')}: {new Date(session.expiresAt).toLocaleDateString()}</div>
+                              {session.startedAt && (
+                                <div>{t('candidates.started', 'Started')}: {new Date(session.startedAt).toLocaleString()}</div>
+                              )}
+                            </div>
+                            
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleCopyTestLink(session.token)}
+                            >
+                              {t('candidates.copy_link', 'Copy Link')}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                 )}
               </TabsContent>
               
               <TabsContent value="completed" className="space-y-4">
                 {isLoadingSessions ? (
                   <div className="text-center py-8">{t('common.loading')}</div>
-                ) : filteredSessions.filter(s => s.status === "completed").length === 0 ? (
+                ) : filteredSessionsWithTests.filter(s => s.status === "completed").length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     {filter.trim() ? t('common.no_filter_results') : t('candidates.no_completed_tests', 'No completed tests found for this candidate')}
                   </div>
                 ) : (
-                  filteredSessions
+                  filteredSessionsWithTests
                     .filter(session => session.status === "completed")
-                    .map(session => (
+                    .map(session => {
+                      if (!session) return null;
+                      return (
+                        <div key={session.id} className="border rounded-md p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium">
+                              <Link to={`/dashboard/candidates/${candidateId}/session/${session.id}`} className="text-blue-600 hover:underline">
+                                {session.test?.name || t('candidates.unnamed_test', 'Unnamed test')}
+                              </Link>
+                            </div>
+                            <Badge variant={getStatusBadgeVariant(session.status)}>
+                              {t('candidates.completed')}
+                            </Badge>
+                          </div>
+                          
+                          <div className="text-sm text-muted-foreground mb-2">
+                            {session.test?.category || t('candidates.uncategorized', 'Uncategorized')}
+                          </div>
+                          
+                          <div className="flex items-center space-x-4 mt-2">
+                            <div className="text-lg font-bold">{session.score || 0} {t('candidates.points', 'pts')}</div>
+                            {session.percentScore !== undefined && (
+                              <div className="text-sm text-gray-500">
+                                {session.percentScore}% {t('candidates.score')} 
+                                {session.test?.passingScore && ` (${t('candidates.passing', 'Passing')}: ${session.test.passingScore}%)`}
+                              </div>
+                            )}
+                            {session.passed !== undefined && (
+                              <Badge variant={getResultBadgeVariant(session.passed)}>
+                                {session.passed ? t('candidates.pass') : t('candidates.fail')}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <div className="flex justify-between items-center mt-4 text-sm">
+                            <div>
+                              {session.completedAt && (
+                                <div>{t('candidates.completed_at', 'Completed')}: {new Date(session.completedAt).toLocaleString()}</div>
+                              )}
+                              {session.startedAt && (
+                                <div>{t('candidates.started', 'Started')}: {new Date(session.startedAt).toLocaleString()}</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </TabsContent>
+              
+              <TabsContent value="all" className="space-y-4">
+                {isLoadingSessions ? (
+                  <div className="text-center py-8">{t('common.loading')}</div>
+                ) : filteredSessionsWithTests.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {filter.trim() ? t('common.no_filter_results') : t('candidates.no_tests_assigned', 'No tests assigned to this candidate yet')}
+                  </div>
+                ) : (
+                  filteredSessionsWithTests.map(session => {
+                    if (!session) return null;
+                    return (
                       <div key={session.id} className="border rounded-md p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="font-medium">
-                            {session.test?.name || `${t('candidates.test', 'Test')} #${session.testId}`}
+                            <Link to={`/dashboard/candidates/${candidateId}/session/${session.id}`} className="text-blue-600 hover:underline">
+                              {session.test?.name || t('candidates.unnamed_test', 'Unnamed test')}
+                            </Link>
                           </div>
                           <Badge variant={getStatusBadgeVariant(session.status)}>
-                            {t('candidates.completed')}
+                            {session.status === "completed" 
+                              ? t('candidates.completed') 
+                              : session.status === "in_progress" 
+                                ? t('candidates.in_progress') 
+                                : t('candidates.pending')}
                           </Badge>
                         </div>
                         
@@ -333,23 +405,26 @@ const CandidateDetails = () => {
                           {session.test?.category || t('candidates.uncategorized', 'Uncategorized')}
                         </div>
                         
-                        <div className="flex items-center space-x-4 mt-2">
-                          <div className="text-lg font-bold">{session.score || 0} {t('candidates.points', 'pts')}</div>
-                          {session.percentScore !== undefined && (
-                            <div className="text-sm text-gray-500">
-                              {session.percentScore}% {t('candidates.score')} 
-                              {session.test?.passingScore && ` (${t('candidates.passing', 'Passing')}: ${session.test.passingScore}%)`}
-                            </div>
-                          )}
-                          {session.passed !== undefined && (
-                            <Badge variant={getResultBadgeVariant(session.passed)}>
-                              {session.passed ? t('candidates.pass') : t('candidates.fail')}
-                            </Badge>
-                          )}
-                        </div>
+                        {session.status === "completed" && (
+                          <div className="flex items-center space-x-4 mt-2">
+                            <div className="text-lg font-bold">{session.score || 0} {t('candidates.points', 'pts')}</div>
+                            {session.percentScore !== undefined && (
+                              <div className="text-sm text-gray-500">
+                                {session.percentScore}% {t('candidates.score')} 
+                                {session.test?.passingScore && ` (${t('candidates.passing', 'Passing')}: ${session.test.passingScore}%)`}
+                              </div>
+                            )}
+                            {session.passed !== undefined && (
+                              <Badge variant={getResultBadgeVariant(session.passed)}>
+                                {session.passed ? t('candidates.pass') : t('candidates.fail')}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                         
                         <div className="flex justify-between items-center mt-4 text-sm">
                           <div>
+                            <div>{t('candidates.expires', 'Expires')}: {new Date(session.expiresAt).toLocaleDateString()}</div>
                             {session.completedAt && (
                               <div>{t('candidates.completed_at', 'Completed')}: {new Date(session.completedAt).toLocaleString()}</div>
                             )}
@@ -357,79 +432,20 @@ const CandidateDetails = () => {
                               <div>{t('candidates.started', 'Started')}: {new Date(session.startedAt).toLocaleString()}</div>
                             )}
                           </div>
-                        </div>
-                      </div>
-                    ))
-                )}
-              </TabsContent>
-              
-              <TabsContent value="all" className="space-y-4">
-                {isLoadingSessions ? (
-                  <div className="text-center py-8">{t('common.loading')}</div>
-                ) : filteredSessions.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {filter.trim() ? t('common.no_filter_results') : t('candidates.no_tests_assigned', 'No tests assigned to this candidate yet')}
-                  </div>
-                ) : (
-                  filteredSessions.map(session => (
-                    <div key={session.id} className="border rounded-md p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-medium">
-                          {session.test?.name || `${t('candidates.test', 'Test')} #${session.testId}`}
-                        </div>
-                        <Badge variant={getStatusBadgeVariant(session.status)}>
-                          {session.status === "completed" 
-                            ? t('candidates.completed') 
-                            : session.status === "in_progress" 
-                              ? t('candidates.in_progress') 
-                              : t('candidates.pending')}
-                        </Badge>
-                      </div>
-                      
-                      <div className="text-sm text-muted-foreground mb-2">
-                        {session.test?.category || t('candidates.uncategorized', 'Uncategorized')}
-                      </div>
-                      
-                      {session.status === "completed" && (
-                        <div className="flex items-center space-x-4 mt-2">
-                          <div className="text-lg font-bold">{session.score || 0} {t('candidates.points', 'pts')}</div>
-                          {session.percentScore !== undefined && (
-                            <div className="text-sm text-gray-500">
-                              {session.percentScore}% {t('candidates.score')} 
-                              {session.test?.passingScore && ` (${t('candidates.passing', 'Passing')}: ${session.test.passingScore}%)`}
-                            </div>
-                          )}
-                          {session.passed !== undefined && (
-                            <Badge variant={getResultBadgeVariant(session.passed)}>
-                              {session.passed ? t('candidates.pass') : t('candidates.fail')}
-                            </Badge>
+                          
+                          {session.status !== "completed" && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleCopyTestLink(session.token)}
+                            >
+                              {t('candidates.copy_link', 'Copy Link')}
+                            </Button>
                           )}
                         </div>
-                      )}
-                      
-                      <div className="flex justify-between items-center mt-4 text-sm">
-                        <div>
-                          <div>{t('candidates.expires', 'Expires')}: {new Date(session.expiresAt).toLocaleDateString()}</div>
-                          {session.completedAt && (
-                            <div>{t('candidates.completed_at', 'Completed')}: {new Date(session.completedAt).toLocaleString()}</div>
-                          )}
-                          {session.startedAt && (
-                            <div>{t('candidates.started', 'Started')}: {new Date(session.startedAt).toLocaleString()}</div>
-                          )}
-                        </div>
-                        
-                        {session.status !== "completed" && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleCopyTestLink(session.token)}
-                          >
-                            {t('candidates.copy_link', 'Copy Link')}
-                          </Button>
-                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </TabsContent>
             </Tabs>
