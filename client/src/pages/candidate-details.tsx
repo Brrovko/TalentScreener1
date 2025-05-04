@@ -62,7 +62,7 @@ const CandidateDetails = () => {
   // Get test details for each session
   const sessionsWithTests = useQueries({
     queries: sessions.map((session) => ({
-      queryKey: [`/api/tests/${session.testId}`],
+      queryKey: [`/api/tests/${session.testId}`, session.id],
       queryFn: async () => {
         const testResponse = await apiRequest("GET", `/api/tests/${session.testId}`);
         return {
@@ -276,7 +276,7 @@ const CandidateDetails = () => {
                     .map(session => {
                       if (!session) return null;
                       return (
-                        <div key={session.id} className="border rounded-md p-4">
+                        <div key={`active-${session.id}`} className="border rounded-md p-4">
                           <div className="flex items-center justify-between mb-2">
                             <div className="font-medium">
                               <Link to={`/dashboard/candidates/${candidateId}/session/${session.id}`} className="text-blue-600 hover:underline">
@@ -327,7 +327,7 @@ const CandidateDetails = () => {
                     .map(session => {
                       if (!session) return null;
                       return (
-                        <div key={session.id} className="border rounded-md p-4">
+                        <div key={`completed-${session.id}`} className="border rounded-md p-4">
                           <div className="flex items-center justify-between mb-2">
                             <div className="font-medium">
                               <Link to={`/dashboard/candidates/${candidateId}/session/${session.id}`} className="text-blue-600 hover:underline">
@@ -385,7 +385,7 @@ const CandidateDetails = () => {
                   filteredSessionsWithTests.map(session => {
                     if (!session) return null;
                     return (
-                      <div key={session.id} className="border rounded-md p-4">
+                      <div key={`all-${session.id}`} className="border rounded-md p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="font-medium">
                             <Link to={`/dashboard/candidates/${candidateId}/session/${session.id}`} className="text-blue-600 hover:underline">

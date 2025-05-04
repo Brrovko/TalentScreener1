@@ -118,6 +118,7 @@ export const candidateAnswers = pgTable("candidate_answers", {
   sessionId: integer("session_id").notNull(),
   questionId: integer("question_id").notNull(),
   answer: json("answer").notNull(),
+  answerText: json("answer_text"),
   isCorrect: boolean("is_correct").notNull(),
   points: integer("points").notNull().default(0),
 }, (table) => {

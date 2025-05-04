@@ -1302,7 +1302,8 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
       const processedAnswers = [];
       
       // Process each answer
-      for (const answer of answers) {
+      for (let i = 0; i < answers.length; i++) {
+        const answer = answers[i];
         const question = questions.find(q => q.id === answer.questionId);
         
         if (!question) {
@@ -1311,27 +1312,33 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
           });
         }
         
-        // Check if the answer is correct and calculate points
         let isCorrect = false;
-        
+        let normalizedAnswer = answer.answer;
+        let answerText: string | string[] | null = null;
+
         if (question.type === "multiple_choice") {
-          isCorrect = answer.answer === question.correctAnswer;
+          let answerIndex = typeof answer.answer === 'number' ? answer.answer :
+            (Array.isArray(question.options) ? (question.options as string[]).indexOf(answer.answer) : -1);
+          normalizedAnswer = answerIndex;
+          answerText = Array.isArray(question.options) && answerIndex >= 0 ? question.options[answerIndex] : null;
+          isCorrect = answerIndex === question.correctAnswer;
         } else if (question.type === "checkbox") {
-          // For checkbox, both arrays need to have the same values regardless of order
-          // Обеспечиваем корректность типов для Set
-          const answerArray = Array.isArray(answer.answer) ? answer.answer : [];
-          const correctArray = Array.isArray(question.correctAnswer) ? question.correctAnswer : [];
-          
+          let answerArray = Array.isArray(answer.answer) ? answer.answer : [];
+          let correctArray = Array.isArray(question.correctAnswer) ? question.correctAnswer : [];
+          if (Array.isArray(question.options)) {
+            answerArray = answerArray.map((val: string | number) => typeof val === 'number' ? val : (question.options as string[]).indexOf(val));
+            answerText = answerArray.map((idx: number) => (Array.isArray(question.options) && typeof idx === 'number' && idx >= 0) ? question.options[idx] : null);
+          } else {
+            answerText = answerArray;
+          }
+          normalizedAnswer = answerArray;
           const answerSet = new Set(answerArray);
           const correctSet = new Set(correctArray);
-          
-          isCorrect = answerSet.size === correctSet.size && 
-                      Array.from(answerSet).every(value => correctSet.has(value));
+          isCorrect = answerSet.size === correctSet.size && Array.from(answerSet).every(value => correctSet.has(value));
         } else if (question.type === "text" || question.type === "code") {
-          // For text/code questions, compare with expected answer (case insensitive for text)
+          answerText = answer.answer;
           if (question.type === "text") {
-            isCorrect = String(answer.answer).toLowerCase() === 
-                        String(question.correctAnswer).toLowerCase();
+            isCorrect = String(answer.answer).toLowerCase() === String(question.correctAnswer).toLowerCase();
           } else {
             isCorrect = String(answer.answer) === String(question.correctAnswer);
           }
@@ -1340,13 +1347,14 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
         const points = isCorrect ? question.points : 0;
         totalScore += points;
         
-        // Save the candidate's answer
         const candidateAnswer = {
           sessionId: session.id,
           questionId: question.id,
-          answer: answer.answer,
+          answer: normalizedAnswer,
+          answerText: answerText,
           isCorrect,
-          points
+          points,
+          answerIndex: i
         };
         
         await storage.createCandidateAnswer(candidateAnswer);

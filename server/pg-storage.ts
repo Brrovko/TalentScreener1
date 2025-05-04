@@ -79,6 +79,10 @@ export class PgStorage implements IStorage {
   }
 
   async updateTest(id: number, testData: Partial<InsertTest>): Promise<Test | undefined> {
+    // Do not run update if testData is empty (would generate invalid SQL)
+    if (!testData || Object.keys(testData).length === 0) {
+      return await this.getTest(id);
+    }
     const result = await db.update(tests)
       .set(testData)
       .where(eq(tests.id, id))

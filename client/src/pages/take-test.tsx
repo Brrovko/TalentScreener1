@@ -47,6 +47,7 @@ interface TestDetails {
 interface Answer {
   questionId: number;
   answer: string | string[] | number;
+  answerText: string | string[];
 }
 
 const TakeTestPage = () => {
@@ -92,7 +93,8 @@ const TakeTestPage = () => {
       if (testDetails) {
         const initialAnswers = testDetails.questions.map(q => ({
           questionId: q.id,
-          answer: q.type === "checkbox" ? [] : ""
+          answer: q.type === "checkbox" ? [] : "",
+          answerText: q.type === "checkbox" ? [] : ""
         }));
         setAnswers(initialAnswers);
         
@@ -171,9 +173,50 @@ const TakeTestPage = () => {
   
   // Handle answers change
   const handleAnswerChange = (questionId: number, value: string | string[] | number) => {
-    setAnswers(prev => 
-      prev.map(a => a.questionId === questionId ? { ...a, answer: value } : a)
-    );
+    setAnswers(prev => {
+      return prev.map(a => {
+        if (a.questionId === questionId) {
+          const question = testDetails?.questions.find(q => q.id === questionId);
+          let answerText: string | string[] = "";
+          if (question) {
+            if (question.type === "multiple_choice" && Array.isArray(question.options)) {
+              // Индекс варианта (с нуля)
+              const index = (question.options as string[]).indexOf(value as string);
+              answerText = index >= 0 ? (question.options as string[])[index] : "";
+            } else if (question.type === "checkbox" && Array.isArray(question.options)) {
+              // Массив индексов
+              const indices = (value as string[]).map(v => (question.options as string[]).indexOf(v));
+              answerText = indices.map(i => i >= 0 ? (question.options as string[])[i] : "");
+            } else if (question.type === "text" || question.type === "code") {
+              answerText = value as string;
+            }
+          }
+          return { ...a, answer: value, answerText };
+        }
+        return a;
+      });
+    });
+  };
+  
+  // Handle checkbox answers
+  const handleCheckboxChange = (questionId: number, optionValue: string, checked: boolean) => {
+    setAnswers(prev => {
+      return prev.map(a => {
+        if (a.questionId === questionId) {
+          const currentAnswers = Array.isArray(a.answer) ? [...a.answer] : [];
+          let newAnswers;
+          if (checked) {
+            newAnswers = [...currentAnswers, optionValue];
+          } else {
+            newAnswers = currentAnswers.filter(val => val !== optionValue);
+          }
+          // Вызываем handleAnswerChange для вычисления answerText
+          handleAnswerChange(questionId, newAnswers);
+          return { ...a, answer: newAnswers };
+        }
+        return a;
+      });
+    });
   };
   
   // Check if current answer is valid (non-empty)
@@ -193,25 +236,6 @@ const TakeTestPage = () => {
     }
     
     return answer !== null && answer !== undefined;
-  };
-  
-  // Handle checkbox answers
-  const handleCheckboxChange = (questionId: number, optionValue: string, checked: boolean) => {
-    setAnswers(prev => {
-      return prev.map(a => {
-        if (a.questionId === questionId) {
-          const currentAnswers = Array.isArray(a.answer) ? [...a.answer] : [];
-          if (checked) {
-            // Add option if checked
-            return { ...a, answer: [...currentAnswers, optionValue] };
-          } else {
-            // Remove option if unchecked
-            return { ...a, answer: currentAnswers.filter(val => val !== optionValue) };
-          }
-        }
-        return a;
-      });
-    });
   };
   
   // Get current question

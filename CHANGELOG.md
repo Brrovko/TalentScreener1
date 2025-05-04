@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed dashboard crash by switching to static import for candidate session details page in App.tsx.
 - Fixed answer rendering for multiple choice: now shows option text instead of index.
+- Fixed answer validation logic: for multiple_choice and checkbox questions, answers are now always normalized to the index (or array of indices) of the selected option(s) before being stored and compared. This ensures correct correctness checking regardless of whether the client sends text or index. For text/code questions, string comparison is used. Linter errors fixed. Tested via curl and logs.
+- Fixed: Unique React keys for test sessions in candidate details page to avoid duplication and React warnings.
+- Fixed: Each test session now links to its unique session, even if the candidate took the same test multiple times.
+- Improved: Removed debug output from UI and console for production cleanliness.
 
 ## [1.0.4] - 2025-05-04
 ### Fixed
