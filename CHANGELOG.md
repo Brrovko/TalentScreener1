@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Backend tests and Allure report publication moved to a dedicated `test-backend` job. `build-and-push` job now depends on successful test completion.
+- Deploy workflow still blocks deployment if tests fail.
+- Allure backend report is always generated in CI (via `npx allure generate`) and attached as an artifact (`allure-report-backend`).
+
 
 ## [1.7.0] - 2025-05-08
 
