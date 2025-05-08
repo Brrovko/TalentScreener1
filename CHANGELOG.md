@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Allure backend report is now automatically published to GitHub Pages after deployment. The workflow summary includes a direct link to the latest report.
-
-
 ### Changed
 - Backend tests and Allure report publication moved to a dedicated `test-backend` job. `build-and-push` job now depends on successful test completion.
 - Deploy workflow still blocks deployment if tests fail.
