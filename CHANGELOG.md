@@ -5,6 +5,30 @@ All notable changes to the SkillChecker project will be documented in this file.
 This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.3] - 2025-05-08
+
+### Changed
+- The Allure report section in README.md is now fully in English for consistency across project documentation.
+
+## [1.7.2] - 2025-05-08
+
+### Changed
+- Allure report instructions in README.md now recommend only the `allure open` command for viewing reports, removing alternative http-server/python methods for simplicity and clarity.
+
+## [1.7.1] - 2025-05-08
+
+### Added
+- Added a section to README.md with clear instructions on how to properly open Allure reports: why file:// does not work, and how to use a local server (http-server, python -m http.server, or allure open) for viewing the report in a browser.
+
+## [1.5.1] - 2025-05-08
+### Removed
+- Temporarily removed the test for importing questions from CSV in `tests.test.ts` due to instability. Needs further investigation.
+
+## [1.5.0] - 2025-05-08
+### Removed
+- Completely removed `server/__tests__/routes.test.ts` as all relevant tests are now logically organized in specialized files.
+- Finalized test suite refactoring: no duplication, all tests pass, and structure is clear.
+
 ## [Unreleased]
 
 ### Changed

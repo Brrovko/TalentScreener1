@@ -26,7 +26,7 @@ export async function loggedRequest(
   url: string,
   body?: any,
   stepName?: string,
-  logToConsole = false
+  logToConsole = true
 ): Promise<LoggedRequestResult> {
   return allure.step(stepName || `${method} ${url}`, async () => {
     const start = Date.now();
@@ -44,10 +44,8 @@ export async function loggedRequest(
     };
     const reqLog = JSON.stringify(reqLogObj, null, 2);
     await allure.attachment('Request', reqLog, { contentType: 'application/json' });
-    if (logToConsole) {
-      // eslint-disable-next-line no-console
-      console.log('--- REQUEST:', reqLog);
-    }
+    // eslint-disable-next-line no-console
+    console.log('--- REQUEST:', reqLog);
     let req = (request(app) as any)[method.toLowerCase()](url);
     if (body) req = req.send(body);
     // Пробрасываем заголовки, куки и query если есть
@@ -65,10 +63,8 @@ export async function loggedRequest(
     };
     const resLog = JSON.stringify(resLogObj, null, 2);
     await allure.attachment('Response', resLog, { contentType: 'application/json' });
-    if (logToConsole) {
-      // eslint-disable-next-line no-console
-      console.log('--- RESPONSE:', resLog);
-    }
+    // eslint-disable-next-line no-console
+    console.log('--- RESPONSE:', resLog);
     return {
       status: res.status,
       body: res.body,

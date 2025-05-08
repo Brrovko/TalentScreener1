@@ -177,3 +177,25 @@ After setting up the application, you can log in with the default administrator 
 ## License
 
 MIT
+
+---
+
+## Working with Allure Reports
+
+Allure generates an interactive HTML report, which cannot be opened directly in the browser via file:// due to browser security restrictions and the report's internal architecture (AJAX requests to JSON files). As a result, opening the report via file:// will show a blank or broken page.
+
+**Correct way to view the Allure report:**
+
+1. Generate the report:
+   ```bash
+   npx allure generate <allure-results> -o <allure-report>
+   ```
+2. Open the report with the command:
+   ```bash
+   npx allure open <allure-report>
+   ```
+   This command will automatically start a local server and open the report in your browser.
+
+**Important:**
+- If you need to share the report, send the entire `allure-report` folder and include instructions to use `allure open` for viewing.
+- Opening via file:// is not supported and will not work correctly.

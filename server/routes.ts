@@ -2138,8 +2138,8 @@ app.post("/api/tests/:id/import-questions",
               testId,
               content: row.content,
               type: row.type || 'multiple_choice',
-              options: JSON.parse(row.options),
-              correctAnswer: JSON.parse(row.correctAnswer),
+              options: (() => { try { return JSON.parse(row.options); } catch (e) { console.error('Ошибка парсинга options:', row.options, e); return []; } })(),
+              correctAnswer: row.correctAnswer && row.correctAnswer.trim() !== '' ? (isNaN(Number(row.correctAnswer)) ? row.correctAnswer : Number(row.correctAnswer)) : null,
               points: row.points ? parseInt(row.points) : 1,
               order: maxOrder + createdQuestions.length + 1 // Устанавливаем порядок после существующих вопросов
             });

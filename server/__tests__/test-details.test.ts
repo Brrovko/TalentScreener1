@@ -2,7 +2,7 @@ import express from 'express';
 import { registerRoutes } from '../routes';
 import { loggedRequest, assertWithAllure } from './test-helper';
 
-describe('API /api/tests/:id', () => {
+describe('Работа с тестами', () => {
   let app: express.Express;
 
   beforeAll(async () => {
