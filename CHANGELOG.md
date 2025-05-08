@@ -5,6 +5,25 @@ All notable changes to the SkillChecker project will be documented in this file.
 This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+
+## [1.7.0] - 2025-05-08
+
+- All server tests now exclusively use `loggedRequest` for HTTP requests and all assertions are wrapped with `assertWithAllure` for step-level logging in Allure reports. This ensures complete traceability and visibility of all test actions and checks in the Allure test report.
+
+### Fixed
+- Allure integration in server tests: switched from `allure-js-commons` import to global `allure` object as provided by `jest-allure2`. Added proper TypeScript declaration and fixed `tsconfig.json` to enable global Jest types. All tests now pass.
+
+### Added
+- assertWithAllure helper for logging all assertions (expect) as steps in Allure reports.
+- loggedRequest now logs all possible request/response details (method, url, body, headers, cookies, query, response headers, response cookies, etc.) to Allure attachments.
+- Tests updated to use assertWithAllure for all key checks, providing more transparent and readable Allure reports.
+
+- Added new tests for `/api/tests/:id` endpoint: GET returns 200 and test object if exists, GET returns 404 for non-existent test, PATCH updates test and returns 200, PATCH returns 404 for non-existent test.
+
+- Added detailed checks for the structure of the test object in the test `GET /api/tests should return 200 and array with expected structure` (fields: id, name, description, category, createdBy, isActive, passingScore, timeLimit).
+
 ## [1.0.5] - 2025-05-05
 ### Added
 - CHANGELOG.md file to track all project changes

@@ -53,6 +53,24 @@ services:
     networks:
       - skillchecker-network
 
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: skillchecker:latest
+    container_name: skillchecker-test
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/skillchecker
+      - SESSION_SECRET=your-secure-session-secret-key
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run test:server
+    networks:
+      - skillchecker-network
+
 networks:
   skillchecker-network:
     driver: bridge
