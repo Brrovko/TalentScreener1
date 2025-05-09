@@ -49,10 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.1] - 2025-05-09
-### Removed
-- Removed search by test functionality from candidate's test history page. Now all tests are shown without filtering or search.
-
 ### Changed
 - RecentActivity теперь использует Link из `wouter` для перехода к деталям кандидата на дашборде (единый способ ссылок с таблицей кандидатов).
 - Исправлены типы метода getRecentActivity в MemStorage (возвращает candidateId).
