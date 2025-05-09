@@ -37,7 +37,7 @@ const CandidateDetails = () => {
   const candidateId = parseInt(params?.id || "0");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const { t } = useTranslation();
-  const [filter, setFilter] = useState('');
+
 
   // Get candidate data
   const { data: candidate, isLoading: isLoadingCandidate } = useQuery<Candidate>({
@@ -94,19 +94,12 @@ const CandidateDetails = () => {
     return passed ? "success" : "destructive";
   };
 
-  // Filter sessions based on search term
-  const filteredSessionsWithTests = useMemo(() => {
+  // Получить массив сессий с тестами без фильтрации
+  const sessionsWithTestsData = useMemo(() => {
     return sessionsWithTests
       .map((q) => q.data ?? null)
-      .filter((session): session is NonNullable<typeof sessionsWithTests[number]["data"]> => session !== null)
-      .filter(session => {
-        if (!filter.trim()) return true;
-        const testName = session.test?.name || `Test #${session.testId}`;
-        const category = session.test?.category || "Uncategorized";
-        return testName.toLowerCase().includes(filter.toLowerCase()) ||
-               category.toLowerCase().includes(filter.toLowerCase());
-      });
-  }, [sessionsWithTests, filter]);
+      .filter((session): session is NonNullable<typeof sessionsWithTests[number]["data"]> => session !== null);
+  }, [sessionsWithTests]);
 
   // Handle manual refresh of sessions
   const handleRefreshSessions = () => {
@@ -246,23 +239,14 @@ const CandidateDetails = () => {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder={t('common.search')}
-                className="w-full px-3 py-2 border border-neutral-200 rounded-md"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              />
-            </div>
             {isLoadingSessions ? (
               <div className="text-center py-8">{t('common.loading')}</div>
-            ) : filteredSessionsWithTests.length === 0 ? (
+            ) : sessionsWithTestsData.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                {filter.trim() ? t('common.no_filter_results') : t('candidates.no_tests_assigned', 'No tests assigned to this candidate yet')}
+                {t('candidates.no_tests_assigned', 'No tests assigned to this candidate yet')}
               </div>
             ) : (
-              filteredSessionsWithTests.map(session => {
+              sessionsWithTestsData.map(session => {
                 if (!session) return null;
                 return (
                   <div key={`session-${session.id}`} className="border rounded-md p-4">
