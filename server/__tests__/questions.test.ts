@@ -15,7 +15,7 @@ describe('Управление вопросами теста', () => {
     const testRes = await loggedRequest(app, 'POST', '/api/tests', {
       name: 'Questions Test',
       description: 'Test for adding questions',
-      category: 'Questions',
+      
       createdBy: 5,
       passingScore: 75,
       timeLimit: 45

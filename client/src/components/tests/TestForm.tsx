@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CATEGORIES, Test } from "@shared/schema";
+import { Test } from "@shared/schema";
 import { useTranslation } from "react-i18next";
 
 interface TestFormProps {
@@ -35,7 +35,7 @@ interface TestFormProps {
 const testFormSchema = z.object({
   name: z.string().min(3, "Test name must be at least 3 characters"),
   description: z.string().optional(),
-  category: z.enum(CATEGORIES as unknown as [string, ...string[]]),
+
   timeLimit: z.number().min(0).optional(),
   passingScore: z.number().min(0).max(100).default(70),
   isActive: z.boolean().default(true),
@@ -53,7 +53,7 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
     defaultValues: {
       name: test?.name || "",
       description: test?.description || "",
-      category: (test?.category as any) || "Frontend",
+
       timeLimit: test?.timeLimit != null ? test.timeLimit : 30,
       passingScore: test?.passingScore || 70,
       isActive: test?.isActive !== undefined ? test.isActive : true,
@@ -158,34 +158,6 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('tests.category')}</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('tests.select_category', 'Select a category')} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           <FormField
             control={form.control}
             name="timeLimit"

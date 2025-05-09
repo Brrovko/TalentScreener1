@@ -16,7 +16,7 @@ describe('/api/recent-activity route', () => {
     const testRes = await loggedRequest(app, 'POST', '/api/tests', {
       name: 'Recent Activity Test',
       description: 'Test for recent activity API',
-      category: 'Dashboard',
+      
       createdBy: 1,
       passingScore: 50,
       timeLimit: 10

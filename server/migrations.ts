@@ -107,7 +107,7 @@ async function createSampleTests(adminId: number) {
   const jsTest = await db.insert(tests).values({
     name: 'JavaScript Fundamentals',
     description: 'Test basic knowledge of JavaScript language',
-    category: 'Frontend',
+    
     createdBy: adminId,
     timeLimit: 30,
     isActive: true,
@@ -161,7 +161,7 @@ async function createSampleTests(adminId: number) {
   const sqlTest = await db.insert(tests).values({
     name: 'SQL Basics',
     description: 'Test basic knowledge of SQL queries',
-    category: 'Database',
+    
     createdBy: adminId,
     timeLimit: 20,
     isActive: true,

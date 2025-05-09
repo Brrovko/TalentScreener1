@@ -23,8 +23,8 @@ describe('Работа с тестами: создание, импорт, про
     assertWithAllure('name — строка', () => expect(typeof test.name).toBe('string'));
     assertWithAllure('Есть поле description', () => expect(test).toHaveProperty('description'));
     assertWithAllure('description — строка', () => expect(typeof test.description).toBe('string'));
-    assertWithAllure('Есть поле category', () => expect(test).toHaveProperty('category'));
-    assertWithAllure('category — строка', () => expect(typeof test.category).toBe('string'));
+    assertWithAllure('Нет поля category', () => expect(test).not.toHaveProperty('category'));
+    // assertWithAllure('category — строка', () => expect(typeof test.category).toBe('string')); // category больше не ожидается
     assertWithAllure('Есть поле createdBy', () => expect(test).toHaveProperty('createdBy'));
     assertWithAllure('createdBy — число', () => expect(typeof test.createdBy).toBe('number'));
     assertWithAllure('Есть поле isActive', () => expect(test).toHaveProperty('isActive'));

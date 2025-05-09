@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
  *                 type: string
  *               description:
  *                 type: string
- *               category:
+ *
  *                 type: string
  *               timeLimit:
  *                 type: integer
@@ -1111,7 +1111,7 @@ app.get("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
  *                       type: string
  *                     description:
  *                       type: string
- *                     category:
+ *
  *                       type: string
  *                     timeLimit:
  *                       type: integer
@@ -1191,7 +1191,7 @@ app.get("/api/sessions/token/:token", async (req: ExpressRequest, res: Response)
           id: test.id,
           name: test.name,
           description: test.description,
-          category: test.category,
+          
           timeLimit: test.timeLimit
         },
         candidate: {

@@ -73,6 +73,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2025-05-09
+- Removed the 'category' field from the test data structure across the entire codebase (API, database, types, tests, and client UI).
+- Updated backend and frontend logic to not require or use 'category'.
+- Cleaned up all references, including Swagger, mock data, and validation schemas.
+- Fixed docker-compose build and verified all tests pass.
+
+
 ### Added
 - Recent Activity now shows a pass/fail status icon (✅/❌) next to the test name, indicating if the test was passed or not.
 

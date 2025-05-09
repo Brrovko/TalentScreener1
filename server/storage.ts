@@ -105,7 +105,7 @@ export class MemStorage implements IStorage {
     this.createTest({
       name: "JavaScript Fundamentals",
       description: "Basic JavaScript knowledge test",
-      category: "Frontend",
+      
       createdBy: 1,
       isActive: true
     });
@@ -113,7 +113,7 @@ export class MemStorage implements IStorage {
     this.createTest({
       name: "Frontend Development",
       description: "HTML, CSS, and JavaScript test",
-      category: "Frontend",
+      
       createdBy: 1,
       isActive: true
     });
@@ -121,7 +121,7 @@ export class MemStorage implements IStorage {
     this.createTest({
       name: "Backend Quiz",
       description: "Node.js and API development",
-      category: "Backend",
+      
       createdBy: 1,
       isActive: true
     });
@@ -129,7 +129,7 @@ export class MemStorage implements IStorage {
     this.createTest({
       name: "QA Assessment",
       description: "Testing methodologies and tools",
-      category: "QA",
+      
       createdBy: 1,
       isActive: true
     });

@@ -24,7 +24,7 @@ describe('Работа с тестами', () => {
     assertWithAllure('id совпадает', () => expect(res.body).toHaveProperty('id', testId));
     assertWithAllure('Есть поле name', () => expect(res.body).toHaveProperty('name'));
     assertWithAllure('Есть поле description', () => expect(res.body).toHaveProperty('description'));
-    assertWithAllure('Есть поле category', () => expect(res.body).toHaveProperty('category'));
+    
     assertWithAllure('Есть поле createdBy', () => expect(res.body).toHaveProperty('createdBy'));
     assertWithAllure('Есть поле isActive', () => expect(res.body).toHaveProperty('isActive'));
     assertWithAllure('Есть поле passingScore', () => expect(res.body).toHaveProperty('passingScore'));

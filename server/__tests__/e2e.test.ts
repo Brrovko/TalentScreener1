@@ -15,7 +15,7 @@ describe('Полный сценарий прохождения теста кан
     const testRes = await loggedRequest(app, 'POST', '/api/tests', {
       name: 'E2E Test',
       description: 'E2E workflow',
-      category: 'E2E',
+      
       createdBy: 1,
       passingScore: 50,
       timeLimit: 60

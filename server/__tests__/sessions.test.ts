@@ -15,7 +15,7 @@ describe('Процесс прохождения теста кандидатом'
     const testRes = await loggedRequest(app, 'POST', '/api/tests', {
       name: 'Session Answers Test',
       description: 'Test for answers route',
-      category: 'Answers',
+      
       createdBy: 3,
       passingScore: 50,
       timeLimit: 20

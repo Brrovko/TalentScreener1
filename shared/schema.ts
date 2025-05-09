@@ -37,7 +37,7 @@ export const tests = pgTable("tests", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  category: text("category").notNull(),
+
   createdBy: integer("created_by").notNull(),
   timeLimit: integer("time_limit"),
   isActive: boolean("is_active").notNull().default(true),
@@ -47,7 +47,7 @@ export const tests = pgTable("tests", {
 export const insertTestSchema = createInsertSchema(tests).pick({
   name: true,
   description: true,
-  category: true,
+
   createdBy: true,
   timeLimit: true,
   isActive: true,
@@ -134,7 +134,7 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export type Test = typeof tests.$inferSelect;
-export type InsertTest = z.infer<typeof insertTestSchema>;
+export type InsertTest = z.infer<typeof insertTestSchema>; // category removed
 
 export type Question = typeof questions.$inferSelect;
 export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
@@ -149,17 +149,7 @@ export type CandidateAnswer = typeof candidateAnswers.$inferSelect;
 export type InsertCandidateAnswer = z.infer<typeof insertCandidateAnswerSchema>;
 
 // Category enum
-export const CATEGORIES = [
-  "Frontend",
-  "Backend",
-  "QA",
-  "DevOps",
-  "Design",
-  "Product Management",
-  "Data Science",
-] as const;
 
-export type Category = typeof CATEGORIES[number];
 
 // Question type enum
 export const QUESTION_TYPES = [
