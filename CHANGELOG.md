@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Completely removed `server/__tests__/routes.test.ts` as all relevant tests are now logically organized in specialized files.
 - Finalized test suite refactoring: no duplication, all tests pass, and structure is clear.
 
+## [1.7.5] - 2025-05-09
+### Changed
+- Dashboard: Quick Actions section is now displayed above Recent Activity.
+- Dashboard: Recent Activity now spans the full page width.
+- Increased the limit of displayed recent activities to 30 (was 5).
+
 ## [Unreleased]
 
 ### Changed

@@ -325,7 +325,7 @@ export class PgStorage implements IStorage {
     .innerJoin(candidates, eq(testSessions.candidateId, candidates.id))
     .innerJoin(tests, eq(testSessions.testId, tests.id))
     .orderBy(desc(sql`COALESCE(${testSessions.completedAt}, ${testSessions.startedAt}, ${testSessions.expiresAt}, CURRENT_TIMESTAMP)`))
-    .limit(5);
+    .limit(30);
     
     return result;
   }

@@ -135,35 +135,36 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Recent Activity */}
+      {/* Quick Actions */}
       <div className="mt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <RecentActivity />
-          
-          <div className="bg-white p-6 rounded-lg border border-neutral-200">
-            <h3 className="text-lg font-medium mb-4">{t('dashboard.quick_actions', 'Quick Actions')}</h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => setIsCreateTestModalOpen(true)}
-                className="w-full text-left p-3 border border-neutral-200 rounded-md hover:bg-neutral-50"
-              >
-                <div className="font-medium">{t('tests.create_test')}</div>
-                <div className="text-sm text-neutral-500">
-                  {t('dashboard.create_test_description', 'Add questions, set time limits, and more')}
-                </div>
-              </button>
-              <button
-                onClick={() => setIsAddCandidateModalOpen(true)}
-                className="w-full text-left p-3 border border-neutral-200 rounded-md hover:bg-neutral-50"
-              >
-                <div className="font-medium">{t('candidates.add_candidate')}</div>
-                <div className="text-sm text-neutral-500">
-                  {t('dashboard.add_candidate_description', 'Invite a new candidate to take a test')}
-                </div>
-              </button>
-            </div>
+        <div className="bg-white p-6 rounded-lg border border-neutral-200">
+          <h3 className="text-lg font-medium mb-4">{t('dashboard.quick_actions', 'Quick Actions')}</h3>
+          <div className="space-y-3">
+            <button
+              onClick={() => setIsCreateTestModalOpen(true)}
+              className="w-full text-left p-3 border border-neutral-200 rounded-md hover:bg-neutral-50"
+            >
+              <div className="font-medium">{t('tests.create_test')}</div>
+              <div className="text-sm text-neutral-500">
+                {t('dashboard.create_test_description', 'Add questions, set time limits, and more')}
+              </div>
+            </button>
+            <button
+              onClick={() => setIsAddCandidateModalOpen(true)}
+              className="w-full text-left p-3 border border-neutral-200 rounded-md hover:bg-neutral-50"
+            >
+              <div className="font-medium">{t('candidates.add_candidate')}</div>
+              <div className="text-sm text-neutral-500">
+                {t('dashboard.add_candidate_description', 'Invite a new candidate to take a test')}
+              </div>
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="mt-8">
+        <RecentActivity />
       </div>
 
       {/* Create Test Modal */}
