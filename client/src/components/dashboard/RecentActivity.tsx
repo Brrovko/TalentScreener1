@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
+import { Link } from "wouter";
 
 interface Activity {
   sessionId: number;
+  candidateId: number;
   candidateName: string;
   testName: string;
   status: string;
@@ -69,7 +71,11 @@ const RecentActivity = () => {
                 className="flex items-center justify-between border-b border-neutral-100 pb-3 last:border-0 last:pb-0"
               >
                 <div>
-                  <div className="font-medium">{activity.candidateName}</div>
+                  <div className="font-medium">
+                    <Link to={`/dashboard/candidates/${activity.candidateId}`} className="text-blue-600 hover:underline">
+                      {activity.candidateName}
+                    </Link>
+                  </div>
                   <div className="text-sm text-neutral-500">
                     {activity.testName}
                   </div>

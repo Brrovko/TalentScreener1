@@ -109,28 +109,24 @@ const Dashboard = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsCard
-            title={t('dashboard.total_tests')}
-            value={stats?.totalTests || 0}
-            icon={<ClipboardList className="h-5 w-5" />}
-          />
-          <StatsCard
             title={t('dashboard.active_tests')}
             value={stats?.activeTests || 0}
-            description={`${Math.round(
-              ((stats?.activeTests || 0) / (stats?.totalTests || 1)) * 100
-            )}% of total tests`}
             icon={<CheckCircle className="h-5 w-5" />}
           />
           <StatsCard
-            title={t('common.candidates')}
+            title={t('common.candidates') /* Исправлено: используем перевод из common */}
             value={stats?.totalCandidates || 0}
             icon={<Users className="h-5 w-5" />}
           />
           <StatsCard
             title={t('dashboard.pending_sessions')}
             value={stats?.pendingSessions || 0}
-            description={`${stats?.completedSessions || 0} ${t('dashboard.completed_sessions').toLowerCase()}`}
             icon={<Clock className="h-5 w-5" />}
+          />
+          <StatsCard
+            title={t('dashboard.completed_sessions')}
+            value={stats?.completedSessions || 0}
+            icon={<CheckCircle className="h-5 w-5" />}
           />
         </div>
       )}
@@ -142,21 +138,17 @@ const Dashboard = () => {
           <div className="space-y-3">
             <button
               onClick={() => setIsCreateTestModalOpen(true)}
-              className="w-full text-left p-3 border border-neutral-200 rounded-md hover:bg-neutral-50"
+              className="w-full flex items-center gap-2 p-3 border border-neutral-200 rounded-md hover:bg-neutral-50"
             >
+              <ClipboardList className="h-6 w-6 text-neutral-600" />
               <div className="font-medium">{t('tests.create_test')}</div>
-              <div className="text-sm text-neutral-500">
-                {t('dashboard.create_test_description', 'Add questions, set time limits, and more')}
-              </div>
             </button>
             <button
               onClick={() => setIsAddCandidateModalOpen(true)}
-              className="w-full text-left p-3 border border-neutral-200 rounded-md hover:bg-neutral-50"
+              className="w-full flex items-center gap-2 p-3 border border-neutral-200 rounded-md hover:bg-neutral-50"
             >
+              <Users className="h-6 w-6 text-neutral-600" />
               <div className="font-medium">{t('candidates.add_candidate')}</div>
-              <div className="text-sm text-neutral-500">
-                {t('dashboard.add_candidate_description', 'Invite a new candidate to take a test')}
-              </div>
             </button>
           </div>
         </div>

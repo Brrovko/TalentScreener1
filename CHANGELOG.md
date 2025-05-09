@@ -35,7 +35,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard: Recent Activity now spans the full page width.
 - Increased the limit of displayed recent activities to 30 (was 5).
 
+## [1.8.3] - 2025-05-09
+### Added
+- Candidate name in Recent Activity is now clickable and links to the candidate's page.
+
+## [1.8.2] - 2025-05-09
+### Changed
+- Dashboard statistics widgets now show only: active tests, candidates, pending sessions, and completed sessions. All other cards removed for clarity.
+
+## [1.8.0] - 2025-05-09
+### Changed
+- On the Dashboard page, removed button descriptions for "Create Test" and "Add Candidate". Now only the icon and main button text are shown for clarity and simplicity.
+
 ## [Unreleased]
+
+### Changed
+- RecentActivity теперь использует Link из `wouter` для перехода к деталям кандидата на дашборде (единый способ ссылок с таблицей кандидатов).
+- Исправлены типы метода getRecentActivity в MemStorage (возвращает candidateId).
+
 
 ### Changed
 - Backend tests and Allure report publication moved to a dedicated `test-backend` job. `build-and-push` job now depends on successful test completion.

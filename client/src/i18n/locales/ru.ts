@@ -21,6 +21,7 @@ const translation = {
     app_name: "Система оценки кандидатов"
   },
   dashboard: {
+    candidates: "Кандидаты",
     recent_activity: "Недавняя активность",
     statistics: "Статистика",
     total_tests: "Всего тестов",

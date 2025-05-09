@@ -21,6 +21,7 @@ const translation = {
     app_name: "Candidate Assessment System"
   },
   dashboard: {
+    candidates: "Candidates",
     recent_activity: "Recent Activity",
     statistics: "Statistics",
     total_tests: "Total Tests",

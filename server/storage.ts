@@ -62,6 +62,7 @@ export interface IStorage {
   
   getRecentActivity(): Promise<{
     sessionId: number;
+    candidateId: number;
     candidateName: string;
     testName: string;
     status: string;
@@ -509,6 +510,7 @@ export class MemStorage implements IStorage {
   
   async getRecentActivity(): Promise<{
     sessionId: number;
+    candidateId: number;
     candidateName: string;
     testName: string;
     status: string;
@@ -524,6 +526,7 @@ export class MemStorage implements IStorage {
       if (candidate && test) {
         result.push({
           sessionId: session.id,
+          candidateId: candidate.id,
           candidateName: candidate.name,
           testName: test.name,
           status: session.status,

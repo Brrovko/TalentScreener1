@@ -8,7 +8,7 @@ interface StatsCardProps {
   icon: ReactNode;
   trend?: "up" | "down" | "neutral";
   trendValue?: string;
-}
+} 
 
 const StatsCard = ({
   title,
@@ -31,6 +31,7 @@ const StatsCard = ({
         {description && (
           <p className="text-xs text-muted-foreground">{description}</p>
         )}
+
         {trend && trendValue && (
           <div className="flex items-center pt-1">
             <span

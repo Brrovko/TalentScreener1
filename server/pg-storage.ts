@@ -308,6 +308,7 @@ export class PgStorage implements IStorage {
   
   async getRecentActivity(): Promise<{
     sessionId: number;
+    candidateId: number;
     candidateName: string;
     testName: string;
     status: string;
@@ -316,6 +317,7 @@ export class PgStorage implements IStorage {
     // Получаем последние 5 сессий с именами кандидатов и тестов
     const result = await db.select({
       sessionId: testSessions.id,
+      candidateId: candidates.id,
       candidateName: candidates.name,
       testName: tests.name,
       status: testSessions.status,
