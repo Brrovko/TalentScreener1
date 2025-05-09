@@ -18,6 +18,7 @@ interface Activity {
   testName: string;
   status: string;
   date: string;
+  passed?: boolean | null;
 }
 
 const RecentActivity = () => {
@@ -65,33 +66,37 @@ const RecentActivity = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {activities.map((activity) => (
-              <div
-                key={activity.sessionId}
-                className="flex items-center justify-between border-b border-neutral-100 pb-3 last:border-0 last:pb-0"
-              >
-                <div>
-                  <div className="font-medium">
-                    <Link to={`/dashboard/candidates/${activity.candidateId}`} className="text-blue-600 hover:underline">
-                      {activity.candidateName}
-                    </Link>
-                  </div>
-                  <div className="text-sm text-neutral-500">
-                    {activity.testName}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end">
-                  <Badge variant={getStatusBadgeVariant(activity.status)}>
-                    {getStatusLabel(activity.status)}
-                  </Badge>
-                  <div className="text-xs text-neutral-500 mt-1">
-                    {formatDistanceToNow(new Date(activity.date), {
-                      addSuffix: true,
-                    })}
-                  </div>
-                </div>
-              </div>
-            ))}
+            {[...activities]
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  .map((activity) => (
+    <div
+      key={`${activity.sessionId}-${activity.date}`}
+      className="flex items-center justify-between border-b border-neutral-100 pb-3 last:border-0 last:pb-0"
+    >
+      <div>
+        <div className="font-medium">
+          <Link to={`/dashboard/candidates/${activity.candidateId}`} className="text-blue-600 hover:underline">
+            {activity.candidateName}
+          </Link>
+        </div>
+        <div className="text-sm text-neutral-500 flex items-center gap-1">
+  {activity.passed === true && <span title="Тест сдан" className="text-green-600">✅</span>}
+  {activity.passed === false && <span title="Тест не сдан" className="text-red-500">❌</span>}
+  {activity.testName}
+</div>
+      </div>
+      <div className="flex flex-col items-end">
+        <Badge variant={getStatusBadgeVariant(activity.status)}>
+          {getStatusLabel(activity.status)}
+        </Badge>
+        <div className="text-xs text-neutral-500 mt-1 flex items-center">
+  <span title={activity.date} className="text-sm text-neutral-500">
+    {new Date(activity.date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+  </span>
+</div>
+      </div>
+    </div>
+  ))}
           </div>
         )}
       </CardContent>

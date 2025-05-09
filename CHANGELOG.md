@@ -47,7 +47,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - On the Dashboard page, removed button descriptions for "Create Test" and "Add Candidate". Now only the icon and main button text are shown for clarity and simplicity.
 
+## [1.8.4] - 2025-05-09
+
+### Changed
+- Dashboard: Recent Activity теперь отображает только явную дату активности (например, "09.05.2025 11:28"), надпись относительного времени (например, "less than a minute ago") убрана.
+- Стиль даты активности теперь полностью совпадает со стилем названия теста (шрифт, размер, цвет).
+- Recent Activity всегда сортируется по дате активности по убыванию на клиенте.
+- UI-тест RecentActivity удалён по запросу пользователя.
+
 ## [Unreleased]
+
+### Added
+- Recent Activity now shows a pass/fail status icon (✅/❌) next to the test name, indicating if the test was passed or not.
 
 ### Changed
 - RecentActivity теперь использует Link из `wouter` для перехода к деталям кандидата на дашборде (единый способ ссылок с таблицей кандидатов).

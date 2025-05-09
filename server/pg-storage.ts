@@ -312,6 +312,7 @@ export class PgStorage implements IStorage {
     candidateName: string;
     testName: string;
     status: string;
+    passed: boolean | null;
     date: Date;
   }[]> {
     // Получаем последние 5 сессий с именами кандидатов и тестов
@@ -321,6 +322,7 @@ export class PgStorage implements IStorage {
       candidateName: candidates.name,
       testName: tests.name,
       status: testSessions.status,
+      passed: testSessions.passed,
       date: sql<Date>`COALESCE(${testSessions.completedAt}, ${testSessions.startedAt}, ${testSessions.expiresAt}, CURRENT_TIMESTAMP)`
     })
     .from(testSessions)

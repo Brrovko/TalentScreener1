@@ -531,6 +531,7 @@ export class MemStorage implements IStorage {
           testName: test.name,
           status: session.status,
           date: session.startedAt || session.completedAt || new Date(),
+          passed: session.passed,
         });
       }
     }
