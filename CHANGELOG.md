@@ -63,6 +63,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `TestsTable` to navigate to the test details page on click.
 - Cleaned up code and fixed related lint errors.
 
+## [1.8.6] - 2025-05-09
+### Changed
+- Default time limit for new tests is now 30 minutes (previously 0). Editing existing tests keeps their current value.
+
+## [1.8.5] - 2025-05-09
+### Changed
+- Increased the max width of the Create Test modal window (`CreateTestModal`) to `max-w-2xl` for correct horizontal alignment of 'Category' and 'Time Limit' fields. Now both fields are always on the same row.
+
 ## [Unreleased]
 
 ### Added

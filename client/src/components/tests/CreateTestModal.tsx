@@ -11,7 +11,7 @@ interface CreateTestModalProps {
 const CreateTestModal = ({ isOpen, onClose, onCreated }: CreateTestModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-lg w-full">
+      <DialogContent className="max-w-2xl w-full">
         <TestForm
           onComplete={(test) => {
             if (test && test.id) {

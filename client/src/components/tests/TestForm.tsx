@@ -54,7 +54,7 @@ const TestForm = ({ test, onComplete }: TestFormProps) => {
       name: test?.name || "",
       description: test?.description || "",
       category: (test?.category as any) || "Frontend",
-      timeLimit: test?.timeLimit || 0,
+      timeLimit: test?.timeLimit != null ? test.timeLimit : 30,
       passingScore: test?.passingScore || 70,
       isActive: test?.isActive !== undefined ? test.isActive : true,
     },
