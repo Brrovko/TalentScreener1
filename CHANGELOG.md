@@ -73,6 +73,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-05-09
+### Removed
+- Removed `questionCount` property from test creation and update in migrations and seed data. This property is not present in the tests table schema. All server tests pass after the fix.
+
 ## [1.8.0] - 2025-05-09
 - Removed the 'category' field from the test data structure across the entire codebase (API, database, types, tests, and client UI).
 - Updated backend and frontend logic to not require or use 'category'.

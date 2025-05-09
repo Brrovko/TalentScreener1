@@ -111,7 +111,7 @@ async function createSampleTests(adminId: number) {
     createdBy: adminId,
     timeLimit: 30,
     isActive: true,
-    questionCount: 0,
+
     passingScore: 70
   }).returning();
   
@@ -153,9 +153,7 @@ async function createSampleTests(adminId: number) {
   }
   
   // Обновляем количество вопросов в тесте
-  await db.update(tests)
-    .set({ questionCount: jsQuestions.length })
-    .where(eq(tests.id, jsTest[0].id));
+
   
   // Создаем тест по SQL
   const sqlTest = await db.insert(tests).values({
@@ -165,7 +163,7 @@ async function createSampleTests(adminId: number) {
     createdBy: adminId,
     timeLimit: 20,
     isActive: true,
-    questionCount: 0,
+
     passingScore: 60
   }).returning();
   
@@ -198,9 +196,7 @@ async function createSampleTests(adminId: number) {
   }
   
   // Обновляем количество вопросов в тесте
-  await db.update(tests)
-    .set({ questionCount: sqlQuestions.length })
-    .where(eq(tests.id, sqlTest[0].id));
+
   
   return [jsTest[0].id, sqlTest[0].id];
 }
