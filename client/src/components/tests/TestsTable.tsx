@@ -18,10 +18,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "react-i18next";
 
 interface TestsTableProps {
-  onEdit: (test: Test) => void;
+  // больше не требуется onEdit
 }
 
-const TestsTable = ({ onEdit }: TestsTableProps) => {
+import { useLocation } from "wouter";
+const TestsTable = () => {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [filter, setFilter] = useState("");
   const isMobile = useIsMobile();
@@ -94,19 +96,18 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
   }, [tests, filter]);
 
   const TestCard = ({ test }: { test: Test }) => {
+    const [, setLocation] = useLocation();
     return (
       <div className="p-4 border-b border-neutral-200 last:border-b-0">
         <div className="flex justify-between items-start mb-2">
           <div className="font-medium">{test.name}</div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(test)}
-            className="h-8 ml-2 -mt-1"
+          <div
+            className="p-4 border-b border-neutral-200 last:border-b-0 cursor-pointer hover:bg-neutral-50"
+            onClick={() => setLocation(`/dashboard/tests/${test.id}`)}
           >
             <Pencil className="h-4 w-4" />
             <span className="sr-only">{t('common.edit')}</span>
-          </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-2 gap-2 text-sm mb-3">
@@ -188,7 +189,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
             ) : (
               filteredTests.map((test) => (
                 <TableRow key={test.id} className="hover:bg-neutral-50">
-                  <TableCell className="font-medium">{test.name}</TableCell>
+                  <TableCell className="font-medium text-blue-700 hover:underline cursor-pointer" onClick={() => setLocation(`/dashboard/tests/${test.id}`)}>{test.name}</TableCell>
                   <TableCell>{test.category}</TableCell>
                   <TableCell>{questionsCountMap[test.id] || 0}</TableCell>
                   <TableCell>
@@ -199,13 +200,7 @@ const TestsTable = ({ onEdit }: TestsTableProps) => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(test)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+
                   </TableCell>
                 </TableRow>
               ))

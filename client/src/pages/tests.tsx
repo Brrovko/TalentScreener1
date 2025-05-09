@@ -1,25 +1,23 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import CreateTestModal from "@/components/tests/CreateTestModal";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import TestsTable from "@/components/tests/TestsTable";
-import CreateTestModal from "@/components/tests/CreateTestModal";
+
 import { Test } from "@shared/schema";
 import { useTranslation } from "react-i18next";
 
 const Tests = () => {
-  const { t } = useTranslation();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editingTest, setEditingTest] = useState<Test | null>(null);
+  const [, setLocation] = useLocation();
+  const { t } = useTranslation();
+  
+  
 
-  const handleEditTest = (test: Test) => {
-    setEditingTest(test);
-    setIsCreateModalOpen(true);
-  };
 
-  const handleCloseModal = () => {
-    setIsCreateModalOpen(false);
-    setEditingTest(null);
-  };
+
+
 
   return (
     <div className="p-6">
@@ -31,13 +29,17 @@ const Tests = () => {
         </Button>
       </div>
 
-      <TestsTable onEdit={handleEditTest} />
+      <TestsTable />
 
-      <CreateTestModal
-        isOpen={isCreateModalOpen}
-        onClose={handleCloseModal}
-        editingTest={editingTest}
-      />
+<CreateTestModal
+  isOpen={isCreateModalOpen}
+  onClose={() => setIsCreateModalOpen(false)}
+  onCreated={(test) => {
+    setIsCreateModalOpen(false);
+    if (test?.id) setLocation(`/dashboard/tests/${test.id}`);
+  }}
+/>
+
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Tests from "@/pages/tests";
+import TestDetails from "@/pages/test-details";
 import Candidates from "@/pages/candidates";
 import CandidateDetails from "@/pages/candidate-details";
 import Settings from "@/pages/settings";
@@ -64,6 +65,11 @@ function Router() {
             <ProtectedRoute 
               path="/dashboard/tests" 
               component={Tests} 
+              requiredRoles={["admin", "recruiter", "interviewer"]} 
+            />
+            <ProtectedRoute 
+              path="/dashboard/tests/:id" 
+              component={TestDetails} 
               requiredRoles={["admin", "recruiter", "interviewer"]} 
             />
             <ProtectedRoute 

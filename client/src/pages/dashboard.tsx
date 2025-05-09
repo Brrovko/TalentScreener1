@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ClipboardList, Users, CheckCircle, Clock } from "lucide-react";
+import CreateTestModal from "@/components/tests/CreateTestModal";
+import { useLocation } from "wouter";
 import StatsCard from "@/components/dashboard/StatsCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import { useTranslation } from "react-i18next";
-import CreateTestModal from "@/components/tests/CreateTestModal";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -37,9 +39,11 @@ interface DashboardStats {
 }
 
 const Dashboard = () => {
+  const [isCreateTestModalOpen, setIsCreateTestModalOpen] = useState(false);
+  const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [isCreateTestModalOpen, setIsCreateTestModalOpen] = useState(false);
+  
   const [isAddCandidateModalOpen, setIsAddCandidateModalOpen] = useState(false);
   
   const { data: stats, isLoading } = useQuery<DashboardStats>({
@@ -159,11 +163,16 @@ const Dashboard = () => {
         <RecentActivity />
       </div>
 
+
+
       {/* Create Test Modal */}
       <CreateTestModal
         isOpen={isCreateTestModalOpen}
         onClose={() => setIsCreateTestModalOpen(false)}
-        editingTest={null}
+        onCreated={(test) => {
+          setIsCreateTestModalOpen(false);
+          if (test?.id) setLocation(`/dashboard/tests/${test.id}`);
+        }}
       />
 
       {/* Add Candidate Modal */}

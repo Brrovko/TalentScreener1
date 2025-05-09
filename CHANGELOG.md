@@ -55,6 +55,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recent Activity всегда сортируется по дате активности по убыванию на клиенте.
 - UI-тест RecentActivity удалён по запросу пользователя.
 
+## [1.5.0] - 2025-05-09
+### Changed
+- Test management UI: the modal for creating a test has been restored. After creating a test, the user is redirected to the test details page (`/dashboard/tests/:id`).
+- Editing questions is only possible on the test details page, not in the modal.
+- Updated routing and navigation logic for tests.
+- Updated `TestsTable` to navigate to the test details page on click.
+- Cleaned up code and fixed related lint errors.
+
 ## [Unreleased]
 
 ### Added
