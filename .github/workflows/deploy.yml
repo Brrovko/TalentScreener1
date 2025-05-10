@@ -22,6 +22,12 @@ env:
   DATABASE_URL: postgres://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }}
   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
   LLM_MODEL: ${{ secrets.LLM_MODEL }}
+  SMTP_HOST: ${{ secrets.SMTP_HOST }}
+  SMTP_PORT: ${{ secrets.SMTP_PORT }}
+  SMTP_USER: ${{ secrets.SMTP_USER }}
+  SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+  SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
+  SMTP_FROM: ${{ secrets.SMTP_FROM }}
 
 jobs:
   test-backend:
