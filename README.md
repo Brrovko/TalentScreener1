@@ -109,6 +109,14 @@ SkillChecker follows a modern full-stack architecture:
    # OpenRouter API (for AI question generation)
    OPENROUTER_API_KEY=your-openrouter-api-key
    LLM_MODEL=openai/gpt-3.5-turbo
+
+   # SMTP config for EmailService
+   SMTP_HOST=smtp.example.com
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=your_smtp_user
+   SMTP_PASSWORD=your_smtp_password
+   SMTP_FROM=SkillChecker <noreply@skillchecker.tech>
    
    # Application Settings
    NODE_ENV=development

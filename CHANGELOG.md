@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0] - 2025-05-10
+### Changed
+- Removed unused close method from EmailService and all related test code.
+- EmailService tests now use only mocks, no real email sending.
+
+
 All notable changes to the SkillChecker project will be documented in this file.
 
 This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
