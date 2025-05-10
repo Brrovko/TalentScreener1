@@ -23,6 +23,7 @@ import {
   UserRole
 } from "@shared/schema";
 import { nanoid } from "nanoid";
+import { EmailService } from "./services/emailService";
 import { z } from "zod";
 import { setupAuth, requireRole, hashPassword } from "./auth";
 import Papa from 'papaparse';
@@ -173,8 +174,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
  *               name:
  *                 type: string
  *               description:
- *                 type: string
- *
  *                 type: string
  *               timeLimit:
  *                 type: integer
@@ -922,8 +921,46 @@ app.post("/api/sessions", async (req: ExpressRequest, res: Response) => {
       
       const validatedData = insertTestSessionSchema.parse(sessionData);
       const session = await storage.createTestSession(validatedData);
-      
+
+      // Получаем кандидата и тест
+      const candidate = await storage.getCandidate(session.candidateId);
+      const test = await storage.getTest(session.testId);
+
       res.status(201).json(session);
+      // Отправка email — асинхронно, не блокируя ответ клиенту
+      if (candidate && test) {
+        (async () => {
+          try {
+            const baseUrl = process.env.APP_URL || 'https://skillchecker.tech';
+            const testLink = `${baseUrl}/take-test/${session.token}`;
+            let expiresStr = '';
+            if (session.expiresAt) {
+              const expiresAt = session.expiresAt instanceof Date ? session.expiresAt : new Date(session.expiresAt);
+              expiresStr = expiresAt.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+            }
+            const timeLimit = test.timeLimit ? `${test.timeLimit} мин.` : 'Без ограничения';
+            const subject = `Приглашение на тест: ${test.name}`;
+            const html = `
+              <p>Здравствуйте, ${candidate.name || candidate.email}!</p>
+              <p>Вам назначен тест: <b>${test.name}</b></p>
+              <ul>
+                <li>Ссылка для прохождения: <a href="${testLink}">${testLink}</a></li>
+                ${expiresStr ? `<li>Действует до: <b>${expiresStr}</b></li>` : ''}
+                <li>Время на выполнение: <b>${timeLimit}</b></li>
+              </ul>
+              <p>Удачи!</p>
+            `;
+            const emailService = new EmailService();
+            await emailService.sendMail({
+              to: candidate.email,
+              subject,
+              html
+            });
+          } catch (emailError) {
+            console.error('Ошибка отправки email кандидату:', emailError);
+          }
+        })();
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 

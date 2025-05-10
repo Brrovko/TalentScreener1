@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.0] - 2025-05-10
+### Added
+- Automatic email notification to candidate when a test session is created via POST /api/sessions.
+- Email includes test name, unique test link, expiration time (if set), and time limit.
+- EmailService is now instantiated only when sending an email, preventing test failures due to missing SMTP environment variables.
+
 ## [1.4.0] - 2025-05-10
 ### Changed
 - Removed unused close method from EmailService and all related test code.
