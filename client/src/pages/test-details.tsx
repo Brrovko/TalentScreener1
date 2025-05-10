@@ -69,7 +69,6 @@ const TestDetails = () => {
               ) : (
                 <div className="space-y-2">
                   <div><span className="text-neutral-500">{t('tests.test_name')}:</span> <span className="font-medium">{test.name}</span></div>
-                  <div><span className="text-neutral-500">{t('tests.category')}:</span> <span className="font-medium">{test.category}</span></div>
                   {test.description && <div><span className="text-neutral-500">{t('tests.description')}:</span> <span>{test.description}</span></div>}
                 </div>
               )}

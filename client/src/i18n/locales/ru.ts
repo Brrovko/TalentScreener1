@@ -55,7 +55,6 @@ const translation = {
   },
   tests: {
     test_name: "Название теста",
-    category: "Категория",
     questions: "Вопросы",
     status: "Статус",
     active: "Активен",

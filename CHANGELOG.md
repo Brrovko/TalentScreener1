@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.5] - 2025-05-10
+### Changed
+- Removed unused translation key `tests.category` from locale files.
+
+## [1.8.4] - 2025-05-10
+### Changed
+- Removed the `Category` field from the test details page, since the category property has been deleted from the schema.
+
 ## [1.5.0] - 2025-05-10
 ### Added
 - Automatic email notification to candidate when a test session is created via POST /api/sessions.
