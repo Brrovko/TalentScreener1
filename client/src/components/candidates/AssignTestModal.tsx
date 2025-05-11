@@ -160,7 +160,7 @@ const AssignTestModal = ({ isOpen, onClose, candidate }: AssignTestModalProps) =
                 <SelectContent>
                   {activeTests.map((test) => (
                     <SelectItem key={test.id} value={test.id.toString()}>
-                      {test.name} ({test.category})
+                      {test.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
