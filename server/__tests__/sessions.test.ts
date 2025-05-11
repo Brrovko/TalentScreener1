@@ -8,6 +8,20 @@ describe('Процесс прохождения теста кандидатом'
   beforeAll(async () => {
     app = express();
     app.use(express.json());
+    app.use((req, res, next) => {
+      req.user = {
+        id: 1,
+        organizationId: 1,
+        role: 'admin',
+        username: 'test',
+        email: 'test@skillchecker.tech',
+        active: true,
+        password: 'password',
+        fullName: 'Test User',
+        lastLogin: null
+      };
+      next();
+    });
     await registerRoutes(app);
   });
 
@@ -15,7 +29,7 @@ describe('Процесс прохождения теста кандидатом'
     const testRes = await loggedRequest(app, 'POST', '/api/tests', {
       name: 'Session Answers Test',
       description: 'Test for answers route',
-      
+      organizationId: 1,
       createdBy: 3,
       passingScore: 50,
       timeLimit: 20
@@ -25,6 +39,7 @@ describe('Процесс прохождения теста кандидатом'
 
     const questionRes = await loggedRequest(app, 'POST', '/api/questions', {
       testId,
+      organizationId: 1,
       content: '2 + 2?',
       type: 'multiple_choice',
       options: ['3', '4', '5'],
@@ -37,14 +52,16 @@ describe('Процесс прохождения теста кандидатом'
 
     const candidateRes = await loggedRequest(app, 'POST', '/api/candidates', {
       name: 'Answers Candidate',
-      email: `answers_candidate_${Date.now()}@test.com`
+      email: `answers_candidate_${Date.now()}@test.com`,
+      organizationId: 1
     }, 'Создать кандидата для answers');
     expect(candidateRes.status).toBe(201);
     const candidateId = candidateRes.body.id;
 
     const sessionRes = await loggedRequest(app, 'POST', '/api/sessions', {
       testId,
-      candidateId
+      candidateId,
+      organizationId: 1
     }, 'Создать сессию для answers');
     expect(sessionRes.status).toBe(201);
     const sessionId = sessionRes.body.id;

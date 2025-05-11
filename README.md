@@ -86,11 +86,11 @@ SkillChecker follows a modern full-stack architecture:
 ## Installation & Setup
 
 ### Prerequisites
-- Node.js 20+
 - Docker and Docker Compose
-- PostgreSQL 17 (if running without Docker)
+- Node.js 20+ (only needed if running without Docker)
+- PostgreSQL 17 (only needed if running without Docker)
 
-### Using Docker Compose (Recommended)
+### Development Environment (Recommended)
 
 1. Clone the repository:
    ```bash
@@ -98,16 +98,10 @@ SkillChecker follows a modern full-stack architecture:
    cd skillchecker.tech
    ```
 
-2. Create a `.env` file in the root directory with the following variables:
+2. Create a `.env` file in the root directory with development configuration:
    ```
-   # Database Configuration
-   DATABASE_URL=postgresql://postgres:postgres@db:5432/skillchecker
-   
-   # Security
-   SESSION_SECRET=your-secure-session-secret-key
-   
    # OpenRouter API (for AI question generation)
-   OPENROUTER_API_KEY=your-openrouter-api-key
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
    LLM_MODEL=openai/gpt-3.5-turbo
 
    # SMTP config for EmailService
@@ -117,41 +111,50 @@ SkillChecker follows a modern full-stack architecture:
    SMTP_USER=your_smtp_user
    SMTP_PASSWORD=your_smtp_password
    SMTP_FROM=SkillChecker <noreply@skillchecker.tech>
-   
+
    # Application Settings
    NODE_ENV=development
    ```
 
-3. Build and start the application using Docker Compose:
+3. Start the development environment:
    ```bash
    docker-compose up -d
    ```
 
 4. Access the application at http://localhost:5005
 
-### Development Setup (Without Docker)
+### Alternative Setup (Without Docker)
+
+For development without Docker:
 
 1. Install dependencies:
    ```bash
    npm install
    ```
 
-2. Create a `.env` file with the connection to your local PostgreSQL instance:
+2. Create a `.env` file with local PostgreSQL configuration:
    ```
    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/skillchecker
    SESSION_SECRET=your-secure-session-secret-key
-   OPENROUTER_API_KEY=your-openrouter-api-key
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   LLM_MODEL=openai/gpt-3.5-turbo
+   SMTP_HOST=smtp.example.com
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=your_smtp_user
+   SMTP_PASSWORD=your_smtp_password
+   SMTP_FROM=SkillChecker <noreply@skillchecker.tech>
    NODE_ENV=development
    ```
 
-3. Run database migrations:
-   ```bash
-   npm run db:push
-   ```
-
-4. Start the development server:
+3. Start the development server:
    ```bash
    npm run dev
+   ```
+
+4. (Optional) To manually apply migrations without starting the server:
+   ```bash
+   npm run db:push
    ```
 
 5. Access the application at http://localhost:5005
@@ -164,7 +167,14 @@ For production deployment, the application uses a multi-stage Docker build:
    ```
    DATABASE_URL=postgresql://production-user:secure-password@your-db-host:5432/skillchecker
    SESSION_SECRET=your-long-secure-session-secret
-   OPENROUTER_API_KEY=your-openrouter-api-key
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   LLM_MODEL=openai/gpt-3.5-turbo
+   SMTP_HOST=smtp.example.com
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=your_smtp_user
+   SMTP_PASSWORD=your_smtp_password
+   SMTP_FROM=SkillChecker <noreply@skillchecker.tech>
    NODE_ENV=production
    ```
 
@@ -190,15 +200,19 @@ MIT
 
 ## Working with Allure Reports
 
-Allure generates an interactive HTML report, which cannot be opened directly in the browser via file:// due to browser security restrictions and the report's internal architecture (AJAX requests to JSON files). As a result, opening the report via file:// will show a blank or broken page.
+To run server tests and generate Allure reports:
 
-**Correct way to view the Allure report:**
+1. Execute tests:
+   ```bash
+   npm run test:server
+   ```
 
-1. Generate the report:
+2. Generate the report:
    ```bash
    npx allure generate <allure-results> -o <allure-report>
    ```
-2. Open the report with the command:
+
+3. Open the report with the command:
    ```bash
    npx allure open <allure-report>
    ```

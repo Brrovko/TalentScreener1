@@ -62,7 +62,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
    */
   app.get("/api/tests", async (req: ExpressRequest, res: Response) => {
     try {
-      const tests = await storage.getAllTests();
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const tests = await storage.getAllTests(req.user.organizationId);
       res.json(tests);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch tests" });
@@ -97,7 +98,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tests/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const test = await storage.getTest(id);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const test = await storage.getTest(req.user.organizationId, id);
       
       if (!test) {
         return res.status(404).json({ message: "Test not found" });
@@ -135,8 +137,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
    */
   app.post("/api/tests", async (req: ExpressRequest, res: Response) => {
     try {
-      const validatedData = insertTestSchema.parse(req.body);
-      const test = await storage.createTest(validatedData);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const organizationId = req.user.organizationId;
+      const validatedData = insertTestSchema.parse({ organizationId, ...req.body });
+     
+const test = await storage.createTest(organizationId, validatedData);
       
       res.status(201).json(test);
     } catch (error) {
@@ -198,7 +203,8 @@ app.patch("/api/tests/:id", async (req: ExpressRequest, res: Response) => {
       const id = parseInt(req.params.id);
       const validatedData = insertTestSchema.partial().parse(req.body);
       
-      const updatedTest = await storage.updateTest(id, validatedData);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const updatedTest = await storage.updateTest(req.user.organizationId, id, validatedData);
       
       if (!updatedTest) {
         return res.status(404).json({ message: "Test not found" });
@@ -241,7 +247,8 @@ app.patch("/api/tests/:id", async (req: ExpressRequest, res: Response) => {
 app.delete("/api/tests/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteTest(id);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const deleted = await storage.deleteTest(req.user.organizationId, id);
       
       if (!deleted) {
         return res.status(404).json({ message: "Test not found" });
@@ -307,7 +314,8 @@ app.delete("/api/tests/:id", async (req: ExpressRequest, res: Response) => {
 app.get("/api/tests/:id/questions", async (req: ExpressRequest, res: Response) => {
     try {
       const testId = parseInt(req.params.id);
-      const questions = await storage.getQuestionsByTestId(testId);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const questions = await storage.getQuestionsByTestId(req.user.organizationId, testId);
       
       res.json(questions);
     } catch (error) {
@@ -359,8 +367,11 @@ app.get("/api/tests/:id/questions", async (req: ExpressRequest, res: Response) =
  */
 app.post("/api/questions", async (req: ExpressRequest, res: Response) => {
     try {
-      const validatedData = insertQuestionSchema.parse(req.body);
-      const question = await storage.createQuestion(validatedData);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const organizationId = req.user.organizationId;
+      const validatedData = insertQuestionSchema.parse({ organizationId, ...req.body });
+
+      const question = await storage.createQuestion(organizationId, validatedData);
       
       res.status(201).json(question);
     } catch (error) {
@@ -425,7 +436,8 @@ app.patch("/api/questions/:id", async (req: ExpressRequest, res: Response) => {
       const id = parseInt(req.params.id);
       const validatedData = insertQuestionSchema.partial().parse(req.body);
       
-      const updatedQuestion = await storage.updateQuestion(id, validatedData);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const updatedQuestion = await storage.updateQuestion(req.user.organizationId, id, validatedData);
       
       if (!updatedQuestion) {
         return res.status(404).json({ message: "Question not found" });
@@ -468,7 +480,8 @@ app.patch("/api/questions/:id", async (req: ExpressRequest, res: Response) => {
 app.delete("/api/questions/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteQuestion(id);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const deleted = await storage.deleteQuestion(req.user.organizationId, id);
       
       if (!deleted) {
         return res.status(404).json({ message: "Question not found" });
@@ -524,7 +537,8 @@ app.post("/api/tests/:id/reorder-questions", async (req: ExpressRequest, res: Re
         return res.status(400).json({ message: "Question IDs must be an array" });
       }
       
-      const success = await storage.reorderQuestions(testId, questionIds);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const success = await storage.reorderQuestions(req.user.organizationId, testId, questionIds);
       
       if (!success) {
         return res.status(400).json({ message: "Failed to reorder questions" });
@@ -575,7 +589,8 @@ app.post("/api/tests/:id/reorder-questions", async (req: ExpressRequest, res: Re
  */
 app.get("/api/candidates", async (req: ExpressRequest, res: Response) => {
     try {
-      const candidates = await storage.getAllCandidates();
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const candidates = await storage.getAllCandidates(req.user.organizationId);
       res.json(candidates);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch candidates" });
@@ -622,7 +637,8 @@ app.get("/api/candidates", async (req: ExpressRequest, res: Response) => {
 app.get("/api/candidates/:id", async (req: ExpressRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const candidate = await storage.getCandidate(id);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const candidate = await storage.getCandidate(req.user.organizationId, id);
       
       if (!candidate) {
         return res.status(404).json({ message: "Candidate not found" });
@@ -666,8 +682,11 @@ app.get("/api/candidates/:id", async (req: ExpressRequest, res: Response) => {
  */
 app.post("/api/candidates", async (req: ExpressRequest, res: Response) => {
     try {
-      const validatedData = insertCandidateSchema.parse(req.body);
-      const candidate = await storage.createCandidate(validatedData);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const organizationId = req.user.organizationId;
+      const validatedData = insertCandidateSchema.parse({ organizationId, ...req.body });
+
+      const candidate = await storage.createCandidate(organizationId, validatedData);
       
       res.status(201).json(candidate);
     } catch (error) {
@@ -743,7 +762,8 @@ app.post("/api/candidates", async (req: ExpressRequest, res: Response) => {
 app.get("/api/tests/:id/sessions", async (req: ExpressRequest, res: Response) => {
     try {
       const testId = parseInt(req.params.id);
-      const sessions = await storage.getTestSessionsByTestId(testId);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const sessions = await storage.getTestSessionsByTestId(req.user.organizationId, testId);
       
       res.json(sessions);
     } catch (error) {
@@ -805,7 +825,8 @@ app.get("/api/tests/:id/sessions", async (req: ExpressRequest, res: Response) =>
 app.get("/api/candidates/:id/sessions", async (req: ExpressRequest, res: Response) => {
     try {
       const candidateId = parseInt(req.params.id);
-      const sessions = await storage.getTestSessionsByCandidateId(candidateId);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const sessions = await storage.getTestSessionsByCandidateId(req.user.organizationId, candidateId);
       
       res.json(sessions);
     } catch (error) {
@@ -859,16 +880,15 @@ app.get("/api/candidates/:id/sessions", async (req: ExpressRequest, res: Respons
  *         description: Server error
  */
 app.get("/api/tests/sessions", async (req: ExpressRequest, res: Response) => {
+    if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
     try {
       // Get sessions for all tests
       const sessions = [];
-      const tests = await storage.getAllTests();
-      
+      const tests = await storage.getAllTests(req.user.organizationId);
       for (const test of tests) {
-        const testSessions = await storage.getTestSessionsByTestId(test.id);
+        const testSessions = await storage.getTestSessionsByTestId(req.user.organizationId, test.id);
         sessions.push(...testSessions);
       }
-      
       res.json(sessions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch test sessions" });
@@ -918,13 +938,15 @@ app.post("/api/sessions", async (req: ExpressRequest, res: Response) => {
       if (typeof sessionData.expiresAt === 'string') {
         sessionData.expiresAt = new Date(sessionData.expiresAt);
       }
-      
-      const validatedData = insertTestSessionSchema.parse(sessionData);
-      const session = await storage.createTestSession(validatedData);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const organizationId = req.user.organizationId;
+      const validatedData = insertTestSessionSchema.parse({ organizationId, ...sessionData });
+
+const session = await storage.createTestSession(organizationId, validatedData);
 
       // Получаем кандидата и тест
-      const candidate = await storage.getCandidate(session.candidateId);
-      const test = await storage.getTest(session.testId);
+      const candidate = await storage.getCandidate(organizationId, session.candidateId);
+      const test = await storage.getTest(organizationId, session.testId);
 
       res.status(201).json(session);
       // Отправка email — асинхронно, не блокируя ответ клиенту
@@ -1020,15 +1042,15 @@ app.post("/api/sessions", async (req: ExpressRequest, res: Response) => {
  *         description: Server error
  */
 app.patch("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
+    if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
     try {
       const id = parseInt(req.params.id);
-      const session = await storage.getTestSession(id);
+      const session = await storage.getTestSession(req.user.organizationId, id);
       
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
-      
-      const updatedSession = await storage.updateTestSession(id, req.body);
+      const updatedSession = await storage.updateTestSession(req.user.organizationId, id, req.body);
       
       res.json(updatedSession);
     } catch (error) {
@@ -1084,14 +1106,15 @@ app.patch("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
  *         description: Server error
  */
 app.get("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
+    if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
     try {
       const id = parseInt(req.params.id);
-      const session = await storage.getTestSession(id);
+      const session = await storage.getTestSession(req.user.organizationId, id);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
       // enrich with test name
-      const test = await storage.getTest(session.testId);
+      const test = await storage.getTest(req.user.organizationId, session.testId);
       res.json({ ...session, test });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch session" });
@@ -1186,33 +1209,29 @@ app.get("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
  *         description: Server error
  */
 app.get("/api/sessions/token/:token", async (req: ExpressRequest, res: Response) => {
+    if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
     try {
       const token = req.params.token;
-      const session = await storage.getTestSessionByToken(token);
-      
+      const session = await storage.getTestSessionByToken(req.user.organizationId, token);
       if (!session) {
         return res.status(404).json({ message: "Session not found or expired" });
       }
-      
       // Check if session is expired
       if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
         return res.status(403).json({ message: "Test session has expired" });
       }
-      
       // Get the test details
-      const test = await storage.getTest(session.testId);
+      const test = await storage.getTest(req.user.organizationId, session.testId);
       if (!test) {
         return res.status(404).json({ message: "Test not found" });
       }
-      
       // Get the candidate details
-      const candidate = await storage.getCandidate(session.candidateId);
+      const candidate = await storage.getCandidate(req.user.organizationId, session.candidateId);
       if (!candidate) {
         return res.status(404).json({ message: "Candidate not found" });
       }
-      
       // Get the questions - don't include correct answers
-      const questionsWithAnswers = await storage.getQuestionsByTestId(test.id);
+      const questionsWithAnswers = await storage.getQuestionsByTestId(req.user.organizationId, test.id);
       const questions = questionsWithAnswers.map(q => ({
         id: q.id,
         content: q.content,
@@ -1308,6 +1327,7 @@ app.get("/api/sessions/token/:token", async (req: ExpressRequest, res: Response)
  *         description: Server error
  */
 app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Response) => {
+    if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
     try {
       const token = req.params.token;
       const { answers } = req.body;
@@ -1317,7 +1337,7 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
         return res.status(400).json({ message: "Answers must be an array" });
       }
       
-      const session = await storage.getTestSessionByToken(token);
+      const session = await storage.getTestSessionByToken(req.user.organizationId, token);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
@@ -1333,7 +1353,7 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
       }
       
       // Get questions to validate answers and calculate score
-      const questions = await storage.getQuestionsByTestId(session.testId);
+      const questions = await storage.getQuestionsByTestId(req.user.organizationId, session.testId);
       
       let totalScore = 0;
       const processedAnswers = [];
@@ -1390,16 +1410,16 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
           answer: normalizedAnswer,
           answerText: answerText,
           isCorrect,
-          points,
-          answerIndex: i
+          points
         };
         
-        await storage.createCandidateAnswer(candidateAnswer);
+        if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+await storage.createCandidateAnswer(req.user.organizationId, candidateAnswer);
         processedAnswers.push(candidateAnswer);
       }
       
       // Get test for passing score threshold
-      const test = await storage.getTest(session.testId);
+      const test = await storage.getTest(req.user.organizationId, session.testId);
       if (!test) {
         return res.status(404).json({ message: "Test not found" });
       }
@@ -1414,7 +1434,7 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
       const passed = percentScore >= (test.passingScore || 70);
       
       // Update the session with the score, percentage, pass status and mark as completed
-      const updatedSession = await storage.updateTestSession(session.id, {
+      const updatedSession = await storage.updateTestSession(req.user.organizationId, session.id, {
         status: "completed",
         completedAt: new Date(),
         score: totalScore,
@@ -1482,30 +1502,26 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
  *         description: Server error
  */
 app.post("/api/sessions/:token/start", async (req: ExpressRequest, res: Response) => {
+    if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
     try {
       const token = req.params.token;
-      
-      const session = await storage.getTestSessionByToken(token);
+      const session = await storage.getTestSessionByToken(req.user.organizationId, token);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
-      
       // Check if session is expired
       if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
         return res.status(403).json({ message: "Test session has expired" });
       }
-      
       // Check if session is already completed or in progress
       if (session.status === "completed") {
         return res.status(400).json({ message: "Test has already been completed" });
       }
-      
       // Update the session status to in_progress and set the start time
-      const updatedSession = await storage.updateTestSession(session.id, {
+      const updatedSession = await storage.updateTestSession(req.user.organizationId, session.id, {
         status: "in_progress",
         startedAt: new Date()
       });
-      
       res.json(updatedSession);
     } catch (error) {
       res.status(500).json({ message: "Failed to start session" });
@@ -1550,7 +1566,8 @@ app.post("/api/sessions/:token/start", async (req: ExpressRequest, res: Response
  */
 app.get("/api/stats", async (req: ExpressRequest, res: Response) => {
     try {
-      const stats = await storage.getTestStats();
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const stats = await storage.getTestStats(req.user.organizationId);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });
@@ -1587,7 +1604,11 @@ app.get("/api/stats", async (req: ExpressRequest, res: Response) => {
  */
 app.get("/api/recent-activity", async (req: ExpressRequest, res: Response) => {
     try {
-      const activity = await storage.getRecentActivity();
+      const orgId = typeof req.query.organizationId === 'string'
+        ? parseInt(req.query.organizationId, 10)
+        : (req.user as any)?.organizationId ?? 1;
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+      const activity = await storage.getRecentActivity(req.user.organizationId);
       res.json(activity);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch recent activity" });
@@ -1640,7 +1661,8 @@ app.get("/api/recent-activity", async (req: ExpressRequest, res: Response) => {
  */
 app.get("/api/users", requireRole("admin"), async (req: ExpressRequest, res: Response) => {
     try {
-      const users = await storage.getAllUsers();
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const users = await storage.getAllUsers(req.user.organizationId);
       res.json(users);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch users" });
@@ -1697,7 +1719,8 @@ app.patch("/api/users/:id", requireRole("admin"), async (req: ExpressRequest, re
       // Не разрешаем изменять пароль через этот маршрут
       const { password, ...userData } = req.body;
       
-      const updatedUser = await storage.updateUser(id, userData);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const updatedUser = await storage.updateUser(req.user.organizationId, id, userData);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -1761,18 +1784,20 @@ app.post("/api/users/:id/reset-password", requireRole("admin"), async (req: Expr
         });
       }
       
-      const user = await storage.getUser(id);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const user = await storage.getUser(req.user.organizationId, id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
       const hashedPassword = await hashPassword(newPassword);
-      const updatedUser = await storage.updateUser(id, { password: hashedPassword });
+      const updatedUser = await storage.updateUser(req.user.organizationId, id, { password: hashedPassword });
       
       if (!updatedUser) {
         return res.status(404).json({ message: "Failed to reset password" });
       }
       
+
       res.json({ message: "Password reset successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to reset password" });
@@ -1836,7 +1861,8 @@ app.post("/api/change-password", async (req: ExpressRequest, res: Response) => {
       }
       
       const userId = req.user!.id;
-      const user = await storage.getUser(userId);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const user = await storage.getUser(req.user.organizationId, userId);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -1853,7 +1879,8 @@ app.post("/api/change-password", async (req: ExpressRequest, res: Response) => {
       
       // Хешируем новый пароль
       const hashedPassword = await hashPassword(newPassword);
-      const updatedUser = await storage.updateUser(userId, { password: hashedPassword });
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const updatedUser = await storage.updateUser(req.user.organizationId, userId, { password: hashedPassword });
       
       if (!updatedUser) {
         return res.status(404).json({ message: "Failed to update password" });
@@ -1916,7 +1943,8 @@ app.post("/api/generate-questions", async (req: ExpressRequest, res: Response) =
         return res.status(400).json({ error: "Count, type and testId are required" });
       }
 
-      const test = await storage.getTest(testId);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const test = await storage.getTest(req.user.organizationId, testId);
       if (!test) {
         return res.status(404).json({ message: "Test not found" });
       }
@@ -2001,15 +2029,17 @@ Example format: \
           if (typeof normalizedType === 'string') {
             normalizedType = normalizedType.replace(/-/g, '_');
           }
-          const saved = await storage.createQuestion({
+          const validatedQ = insertQuestionSchema.parse({
+            organizationId: req.user!.organizationId,
             testId,
             content: q.content,
             type: normalizedType || type,
             options: q.options,
             correctAnswer: q.correctAnswer,
             points: q.points || 1,
-            order: savedQuestions.length
+            order: savedQuestions.length,
           });
+          const saved = await storage.createQuestion(req.user!.organizationId, validatedQ);
           savedQuestions.push(saved);
         } catch (dbError) {
           console.error('Full DB error:', dbError);
@@ -2070,7 +2100,8 @@ Example format: \
 app.get("/api/tests/:id/export-questions", async (req: ExpressRequest, res: Response) => {
     try {
       const testId = parseInt(req.params.id);
-      const questions = await storage.getQuestionsByTestId(testId);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const questions = await storage.getQuestionsByTestId(req.user.organizationId, testId);
       
       // Преобразуем вопросы в CSV-формат
       const csvData = questions.map(q => ({
@@ -2162,7 +2193,7 @@ app.post("/api/tests/:id/import-questions",
         }
 
         // Получаем существующие вопросы для определения порядка новых вопросов
-        const existingQuestions = await storage.getQuestionsByTestId(testId);
+        const existingQuestions = await storage.getQuestionsByTestId(req.user!.organizationId, testId);
         const maxOrder = existingQuestions.length > 0 
           ? Math.max(...existingQuestions.map(q => q.order))
           : 0;
@@ -2171,15 +2202,19 @@ app.post("/api/tests/:id/import-questions",
         const createdQuestions = [];
         for (const row of results.data as any[]) {
           try {
-            const question = await storage.createQuestion({
+            const validatedRow = insertQuestionSchema.parse({
+              organizationId: req.user!.organizationId,
               testId,
               content: row.content,
               type: row.type || 'multiple_choice',
-              options: (() => { try { return JSON.parse(row.options); } catch (e) { console.error('Ошибка парсинга options:', row.options, e); return []; } })(),
-              correctAnswer: row.correctAnswer && row.correctAnswer.trim() !== '' ? (isNaN(Number(row.correctAnswer)) ? row.correctAnswer : Number(row.correctAnswer)) : null,
+              options: (() => { try { return JSON.parse(row.options); } catch { return []; } })(),
+              correctAnswer: row.correctAnswer && row.correctAnswer.trim() !== ''
+                ? (isNaN(Number(row.correctAnswer)) ? row.correctAnswer : Number(row.correctAnswer))
+                : null,
               points: row.points ? parseInt(row.points) : 1,
-              order: maxOrder + createdQuestions.length + 1 // Устанавливаем порядок после существующих вопросов
+              order: maxOrder + createdQuestions.length + 1,
             });
+            const question = await storage.createQuestion(req.user!.organizationId, validatedRow);
             createdQuestions.push(question);
           } catch (e) {
             console.error('Error parsing question row:', row, e);
@@ -2189,11 +2224,11 @@ app.post("/api/tests/:id/import-questions",
         // Обновляем порядок всех вопросов
         if (createdQuestions.length > 0) {
           // Получаем все вопросы теста после импорта
-          const allQuestions = await storage.getQuestionsByTestId(testId);
+          const allQuestions = await storage.getQuestionsByTestId(req.user!.organizationId, testId);
           // Получаем ID всех вопросов в правильном порядке
           const questionIds = allQuestions.map(q => q.id);
           // Обновляем порядок вопросов
-          await storage.reorderQuestions(testId, questionIds);
+          await storage.reorderQuestions(req.user!.organizationId, testId, questionIds);
         }
 
         res.json({
@@ -2237,13 +2272,16 @@ app.post("/api/tests/:id/import-questions",
   app.get("/api/sessions/:sessionId/answers", async (req: ExpressRequest, res: Response) => {
     try {
       const sessionId = parseInt(req.params.sessionId);
-      const session = await storage.getTestSession(sessionId);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const session = await storage.getTestSession(req.user.organizationId, sessionId);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
-      const answers = await storage.getCandidateAnswersBySessionId(sessionId);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const answers = await storage.getCandidateAnswersBySessionId(req.user.organizationId, sessionId);
       // enrich with question text
-      const questions = await storage.getQuestionsByTestId(session.testId);
+      if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+const questions = await storage.getQuestionsByTestId(req.user.organizationId, session.testId);
       const answersWithQuestions = answers.map(a => ({
         ...a,
         question: questions.find(q => q.id === a.questionId) || null

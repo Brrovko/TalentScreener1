@@ -8,6 +8,20 @@ describe('Полный сценарий прохождения теста кан
   beforeAll(async () => {
     app = express();
     app.use(express.json());
+    app.use((req, res, next) => {
+      req.user = {
+        id: 1,
+        organizationId: 1,
+        role: 'admin',
+        username: 'test',
+        email: 'test@skillchecker.tech',
+        active: true,
+        password: 'password',
+        fullName: 'Test User',
+        lastLogin: null
+      };
+      next();
+    });
     await registerRoutes(app);
   });
 
@@ -15,7 +29,7 @@ describe('Полный сценарий прохождения теста кан
     const testRes = await loggedRequest(app, 'POST', '/api/tests', {
       name: 'E2E Test',
       description: 'E2E workflow',
-      
+      organizationId: 1,
       createdBy: 1,
       passingScore: 50,
       timeLimit: 60
@@ -25,6 +39,7 @@ describe('Полный сценарий прохождения теста кан
 
     const questionRes = await loggedRequest(app, 'POST', '/api/questions', {
       testId,
+      organizationId: 1,
       content: 'What is 2 + 2?',
       type: 'multiple_choice',
       options: ['3', '4', '5'],
@@ -37,14 +52,16 @@ describe('Полный сценарий прохождения теста кан
 
     const candidateRes = await loggedRequest(app, 'POST', '/api/candidates', {
       name: 'Test Candidate',
-      email: `e2e_candidate_${Date.now()}@test.com`
+      email: `e2e_candidate_${Date.now()}@test.com`,
+      organizationId: 1
     }, 'E2E: создать кандидата');
     assertWithAllure('Статус 201 при создании кандидата', () => expect(candidateRes.status).toBe(201));
     const candidateId = candidateRes.body.id;
 
     const sessionRes = await loggedRequest(app, 'POST', '/api/sessions', {
       testId,
-      candidateId
+      candidateId,
+      organizationId: 1
     }, 'E2E: создать сессию');
     assertWithAllure('Статус 201 при создании сессии', () => expect(sessionRes.status).toBe(201));
     const sessionToken = sessionRes.body.token;

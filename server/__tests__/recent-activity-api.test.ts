@@ -8,6 +8,20 @@ describe('/api/recent-activity route', () => {
   beforeAll(async () => {
     app = express();
     app.use(express.json());
+    app.use((req, res, next) => {
+      req.user = {
+        id: 1,
+        organizationId: 1,
+        role: 'admin',
+        username: 'test',
+        email: 'test@skillchecker.tech',
+        active: true,
+        password: 'password',
+        fullName: 'Test User',
+        lastLogin: null
+      };
+      next();
+    });
     await registerRoutes(app);
   });
 
@@ -16,7 +30,7 @@ describe('/api/recent-activity route', () => {
     const testRes = await loggedRequest(app, 'POST', '/api/tests', {
       name: 'Recent Activity Test',
       description: 'Test for recent activity API',
-      
+      organizationId: 1,
       createdBy: 1,
       passingScore: 50,
       timeLimit: 10
@@ -27,7 +41,8 @@ describe('/api/recent-activity route', () => {
     // 2. Создать кандидата
     const candidateRes = await loggedRequest(app, 'POST', '/api/candidates', {
       name: 'Recent Activity Candidate',
-      email: `recent_activity_candidate_${Date.now()}@test.com`
+      email: `recent_activity_candidate_${Date.now()}@test.com`,
+      organizationId: 1
     }, 'Создать кандидата для recent activity');
     expect(candidateRes.status).toBe(201);
     const candidateId = candidateRes.body.id;
@@ -35,7 +50,8 @@ describe('/api/recent-activity route', () => {
     // 3. Создать сессию
     const sessionRes = await loggedRequest(app, 'POST', '/api/sessions', {
       candidateId,
-      testId
+      testId,
+      organizationId: 1
     }, 'Создать сессию для recent activity');
     expect(sessionRes.status).toBe(201);
     const sessionId = sessionRes.body.id;

@@ -4,55 +4,61 @@ import {
   questions, Question, InsertQuestion,
   candidates, Candidate, InsertCandidate,
   testSessions, TestSession, InsertTestSession,
-  candidateAnswers, CandidateAnswer, InsertCandidateAnswer
+  candidateAnswers, CandidateAnswer, InsertCandidateAnswer,
+  organizations, Organization, InsertOrganization
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 
 export interface IStorage {
   // User operations
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  getAllUsers(): Promise<User[]>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
-  updateUserLastLogin(id: number): Promise<void>;
+  getUser(organizationId: number, id: number): Promise<User | undefined>;
+  getUserByUsername(organizationId: number, username: string): Promise<User | undefined>;
+  getUserByEmail(organizationId: number, email: string): Promise<User | undefined>;
+  getAllUsers(organizationId: number): Promise<User[]>;
+  findUserByEmail(email: string): Promise<User | undefined>; // Новый метод поиска по email среди всех организаций
+  createUser(organizationId: number, user: InsertUser): Promise<User>;
+  updateUser(organizationId: number, id: number, userData: Partial<User>): Promise<User | undefined>;
+  updateUserLastLogin(organizationId: number, id: number): Promise<void>;
 
   // Test operations
-  getAllTests(): Promise<Test[]>;
-  getTest(id: number): Promise<Test | undefined>;
-  createTest(test: InsertTest): Promise<Test>;
-  updateTest(id: number, test: Partial<InsertTest>): Promise<Test | undefined>;
-  deleteTest(id: number): Promise<boolean>;
+  getAllTests(organizationId: number): Promise<Test[]>;
+  getTest(organizationId: number, id: number): Promise<Test | undefined>;
+  createTest(organizationId: number, test: InsertTest): Promise<Test>;
+  updateTest(organizationId: number, id: number, test: Partial<InsertTest>): Promise<Test | undefined>;
+  deleteTest(organizationId: number, id: number): Promise<boolean>;
 
   // Question operations
-  getQuestionsByTestId(testId: number): Promise<Question[]>;
-  createQuestion(question: InsertQuestion): Promise<Question>;
-  updateQuestion(id: number, question: Partial<InsertQuestion>): Promise<Question | undefined>;
-  deleteQuestion(id: number): Promise<boolean>;
-  deleteQuestionsByTestId(testId: number): Promise<boolean>;
-  reorderQuestions(testId: number, questionIds: number[]): Promise<boolean>;
+  getQuestionsByTestId(organizationId: number, testId: number): Promise<Question[]>;
+  createQuestion(organizationId: number, question: InsertQuestion): Promise<Question>;
+  updateQuestion(organizationId: number, id: number, question: Partial<InsertQuestion>): Promise<Question | undefined>;
+  deleteQuestion(organizationId: number, id: number): Promise<boolean>;
+  deleteQuestionsByTestId(organizationId: number, testId: number): Promise<boolean>;
+  reorderQuestions(organizationId: number, testId: number, questionIds: number[]): Promise<boolean>;
 
   // Candidate operations
-  getAllCandidates(): Promise<Candidate[]>;
-  getCandidate(id: number): Promise<Candidate | undefined>;
-  getCandidateByEmail(email: string): Promise<Candidate | undefined>;
-  createCandidate(candidate: InsertCandidate): Promise<Candidate>;
+  getAllCandidates(organizationId: number): Promise<Candidate[]>;
+  getCandidate(organizationId: number, id: number): Promise<Candidate | undefined>;
+  getCandidateByEmail(organizationId: number, email: string): Promise<Candidate | undefined>;
+  createCandidate(organizationId: number, candidate: InsertCandidate): Promise<Candidate>;
 
   // Test session operations
-  getTestSessionsByTestId(testId: number): Promise<TestSession[]>;
-  getTestSessionsByCandidateId(candidateId: number): Promise<TestSession[]>;
-  getTestSession(id: number): Promise<TestSession | undefined>;
-  getTestSessionByToken(token: string): Promise<TestSession | undefined>;
-  createTestSession(session: InsertTestSession): Promise<TestSession>;
-  updateTestSession(id: number, session: Partial<TestSession>): Promise<TestSession | undefined>;
+  getTestSessionsByTestId(organizationId: number, testId: number): Promise<TestSession[]>;
+  getTestSessionsByCandidateId(organizationId: number, candidateId: number): Promise<TestSession[]>;
+  getTestSession(organizationId: number, id: number): Promise<TestSession | undefined>;
+  getTestSessionByToken(organizationId: number, token: string): Promise<TestSession | undefined>;
+  createTestSession(organizationId: number, session: InsertTestSession): Promise<TestSession>;
+  updateTestSession(organizationId: number, id: number, session: Partial<TestSession>): Promise<TestSession | undefined>;
 
   // Candidate answer operations
-  getCandidateAnswersBySessionId(sessionId: number): Promise<CandidateAnswer[]>;
-  createCandidateAnswer(answer: InsertCandidateAnswer): Promise<CandidateAnswer>;
+  getCandidateAnswersBySessionId(organizationId: number, sessionId: number): Promise<CandidateAnswer[]>;
+  createCandidateAnswer(organizationId: number, answer: InsertCandidateAnswer): Promise<CandidateAnswer>;
+
+  // Organization operations
+  getOrganization(id: number): Promise<Organization | undefined>;
+  createOrganization(data: { name: string }): Promise<Organization>;
 
   // Dashboard stats
-  getTestStats(): Promise<{
+  getTestStats(organizationId: number): Promise<{
     totalTests: number;
     activeTests: number;
     totalCandidates: number;
@@ -60,7 +66,7 @@ export interface IStorage {
     completedSessions: number;
   }>;
   
-  getRecentActivity(): Promise<{
+  getRecentActivity(organizationId: number): Promise<{
     sessionId: number;
     candidateId: number;
     candidateName: string;
@@ -71,18 +77,23 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  async findUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
   private users: Map<number, User>;
   private tests: Map<number, Test>;
   private questions: Map<number, Question>;
   private candidates: Map<number, Candidate>;
   private testSessions: Map<number, TestSession>;
   private candidateAnswers: Map<string, CandidateAnswer>;
+  private organizations: Map<number, Organization>;
   
   private userId: number;
   private testId: number;
   private questionId: number;
   private candidateId: number;
   private sessionId: number;
+  private orgIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -91,180 +102,57 @@ export class MemStorage implements IStorage {
     this.candidates = new Map();
     this.testSessions = new Map();
     this.candidateAnswers = new Map();
+    this.organizations = new Map();
     
     this.userId = 1;
     this.testId = 1;
     this.questionId = 1;
     this.candidateId = 1;
     this.sessionId = 1;
+    this.orgIdCounter = 1;
+    
+    // Seed default organization and test for initial GET /api/tests
+    const defaultOrg = { id: this.orgIdCounter++, name: 'Default Org', createdAt: new Date() };
+    this.organizations.set(defaultOrg.id, defaultOrg);
+    const defaultTest = {
+      id: this.testId++,
+      organizationId: defaultOrg.id,
+      name: 'Sample Test',
+      description: 'Auto-seeded test',
+      createdBy: 0,
+      timeLimit: null,
+      isActive: true,
+      passingScore: 70
+    };
+    this.tests.set(defaultTest.id, defaultTest);
     
     // Note: We're not adding the admin user here anymore.
     // It will now be created in server/index.ts with properly hashed password
-    
-    // Add sample tests
-    this.createTest({
-      name: "JavaScript Fundamentals",
-      description: "Basic JavaScript knowledge test",
-      
-      createdBy: 1,
-      isActive: true
-    });
-    
-    this.createTest({
-      name: "Frontend Development",
-      description: "HTML, CSS, and JavaScript test",
-      
-      createdBy: 1,
-      isActive: true
-    });
-    
-    this.createTest({
-      name: "Backend Quiz",
-      description: "Node.js and API development",
-      
-      createdBy: 1,
-      isActive: true
-    });
-    
-    this.createTest({
-      name: "QA Assessment",
-      description: "Testing methodologies and tools",
-      
-      createdBy: 1,
-      isActive: true
-    });
-    
-    // Add sample questions to each test
-    this.createQuestion({
-      testId: 1,
-      content: "What is JavaScript?",
-      type: "multiple_choice",
-      options: ["Programming language", "Markup language", "Database", "Operating system"],
-      correctAnswer: "Programming language",
-      points: 1,
-      order: 1
-    });
-    
-    // Add more sample questions - Test 1
-    for (let i = 2; i <= 15; i++) {
-      this.createQuestion({
-        testId: 1,
-        content: `JavaScript Question ${i}`,
-        type: "multiple_choice",
-        options: ["Option A", "Option B", "Option C", "Option D"],
-        correctAnswer: "Option A",
-        points: 1,
-        order: i
-      });
-    }
-    
-    // Add sample questions - Test 2
-    for (let i = 1; i <= 20; i++) {
-      this.createQuestion({
-        testId: 2,
-        content: `Frontend Question ${i}`,
-        type: "multiple_choice",
-        options: ["Option A", "Option B", "Option C", "Option D"],
-        correctAnswer: "Option B",
-        points: 1,
-        order: i
-      });
-    }
-    
-    // Add sample questions - Test 3
-    for (let i = 1; i <= 18; i++) {
-      this.createQuestion({
-        testId: 3,
-        content: `Backend Question ${i}`,
-        type: "multiple_choice",
-        options: ["Option A", "Option B", "Option C", "Option D"],
-        correctAnswer: "Option C",
-        points: 1,
-        order: i
-      });
-    }
-    
-    // Add sample questions - Test 4
-    for (let i = 1; i <= 25; i++) {
-      this.createQuestion({
-        testId: 4,
-        content: `QA Question ${i}`,
-        type: "multiple_choice",
-        options: ["Option A", "Option B", "Option C", "Option D"],
-        correctAnswer: "Option D",
-        points: 1,
-        order: i
-      });
-    }
-    
-    // Add sample candidates
-    this.createCandidate({
-      email: "john@example.com",
-      name: "John Doe",
-      position: "Frontend Developer"
-    });
-    
-    this.createCandidate({
-      email: "jane@example.com",
-      name: "Jane Smith",
-      position: "Backend Developer"
-    });
-    
-    this.createCandidate({
-      email: "bob@example.com",
-      name: "Bob Johnson",
-      position: "QA Engineer"
-    });
-    
-    // Add sample test sessions
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    this.createTestSession({
-      testId: 1,
-      candidateId: 1,
-      token: nanoid(),
-      expiresAt: tomorrow
-    });
-    
-    this.createTestSession({
-      testId: 2,
-      candidateId: 2,
-      token: nanoid(),
-      expiresAt: tomorrow
-    });
-    
-    this.createTestSession({
-      testId: 3,
-      candidateId: 3,
-      token: nanoid(),
-      expiresAt: tomorrow
-    });
   }
 
   // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+  async getUser(organizationId: number, id: number): Promise<User | undefined> {
+    const user = this.users.get(id);
+    return user && user.organizationId === organizationId ? user : undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
+  async getUserByUsername(organizationId: number, username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+      (user) => user.organizationId === organizationId && user.username === username,
     );
   }
   
-  async getUserByEmail(email: string): Promise<User | undefined> {
+  async getUserByEmail(organizationId: number, email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.email === email,
+      (user) => user.organizationId === organizationId && user.email === email,
     );
   }
   
-  async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+  async getAllUsers(organizationId: number): Promise<User[]> {
+    return Array.from(this.users.values()).filter(user => user.organizationId === organizationId);
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(organizationId: number, insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
     const role = insertUser.role || "recruiter";
     const active = insertUser.active !== undefined ? insertUser.active : true;
@@ -272,6 +160,7 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
+      organizationId,
       role,
       active,
       lastLogin: null 
@@ -280,37 +169,39 @@ export class MemStorage implements IStorage {
     return user;
   }
   
-  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+  async updateUser(organizationId: number, id: number, userData: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
-    if (!user) return undefined;
+    if (!user || user.organizationId !== organizationId) return undefined;
     
     const updatedUser = { ...user, ...userData };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
   
-  async updateUserLastLogin(id: number): Promise<void> {
+  async updateUserLastLogin(organizationId: number, id: number): Promise<void> {
     const user = this.users.get(id);
-    if (user) {
+    if (user && user.organizationId === organizationId) {
       user.lastLogin = new Date();
       this.users.set(id, user);
     }
   }
 
   // Test operations
-  async getAllTests(): Promise<Test[]> {
-    return Array.from(this.tests.values());
+  async getAllTests(organizationId: number): Promise<Test[]> {
+    return Array.from(this.tests.values()).filter(test => test.organizationId === organizationId);
   }
 
-  async getTest(id: number): Promise<Test | undefined> {
-    return this.tests.get(id);
+  async getTest(organizationId: number, id: number): Promise<Test | undefined> {
+    const test = this.tests.get(id);
+    return test && test.organizationId === organizationId ? test : undefined;
   }
 
-  async createTest(insertTest: InsertTest): Promise<Test> {
+  async createTest(organizationId: number, insertTest: InsertTest): Promise<Test> {
     const id = this.testId++;
     const test: Test = { 
       ...insertTest, 
       id,
+      organizationId,
       description: insertTest.description || null,
       timeLimit: insertTest.timeLimit || null,
       isActive: insertTest.isActive !== undefined ? insertTest.isActive : true,
@@ -320,58 +211,60 @@ export class MemStorage implements IStorage {
     return test;
   }
 
-  async updateTest(id: number, testUpdate: Partial<InsertTest>): Promise<Test | undefined> {
+  async updateTest(organizationId: number, id: number, testUpdate: Partial<InsertTest>): Promise<Test | undefined> {
     const test = this.tests.get(id);
-    if (!test) return undefined;
+    if (!test || test.organizationId !== organizationId) return undefined;
     
     const updatedTest = { ...test, ...testUpdate };
     this.tests.set(id, updatedTest);
     return updatedTest;
   }
 
-  async deleteTest(id: number): Promise<boolean> {
+  async deleteTest(organizationId: number, id: number): Promise<boolean> {
+    const test = this.tests.get(id);
+    if (!test || test.organizationId !== organizationId) return false;
     return this.tests.delete(id);
   }
 
   // Question operations
-  async getQuestionsByTestId(testId: number): Promise<Question[]> {
+  async getQuestionsByTestId(organizationId: number, testId: number): Promise<Question[]> {
     return Array.from(this.questions.values())
-      .filter(q => q.testId === testId)
+      .filter(q => q.testId === testId && q.organizationId === organizationId)
       .sort((a, b) => a.order - b.order);
   }
 
-  async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {
+  async createQuestion(organizationId: number, insertQuestion: InsertQuestion): Promise<Question> {
     const id = this.questionId++;
     const question: Question = { 
       ...insertQuestion, 
       id,
+      organizationId,
       type: insertQuestion.type || 'multiple_choice',
       points: insertQuestion.points || 1
     };
     this.questions.set(id, question);
-    
     return question;
   }
 
-  async updateQuestion(id: number, questionUpdate: Partial<InsertQuestion>): Promise<Question | undefined> {
+  async updateQuestion(organizationId: number, id: number, questionUpdate: Partial<InsertQuestion>): Promise<Question | undefined> {
     const question = this.questions.get(id);
-    if (!question) return undefined;
+    if (!question || question.organizationId !== organizationId) return undefined;
     
     const updatedQuestion = { ...question, ...questionUpdate };
     this.questions.set(id, updatedQuestion);
     return updatedQuestion;
   }
 
-  async deleteQuestion(id: number): Promise<boolean> {
-    if (!this.questions.has(id)) return false;
-    this.questions.delete(id);
-    return true;
+  async deleteQuestion(organizationId: number, id: number): Promise<boolean> {
+    const question = this.questions.get(id);
+    if (!question || question.organizationId !== organizationId) return false;
+    return this.questions.delete(id);
   }
   
-  async deleteQuestionsByTestId(testId: number): Promise<boolean> {
+  async deleteQuestionsByTestId(organizationId: number, testId: number): Promise<boolean> {
     try {
       const questionsToDelete = Array.from(this.questions.values())
-        .filter(q => q.testId === testId)
+        .filter(q => q.testId === testId && q.organizationId === organizationId)
         .map(q => q.id);
       
       for (const id of questionsToDelete) {
@@ -384,44 +277,43 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async reorderQuestions(testId: number, questionIds: number[]): Promise<boolean> {
+  async reorderQuestions(organizationId: number, testId: number, questionIds: number[]): Promise<boolean> {
     const testQuestions = Array.from(this.questions.values())
-      .filter(q => q.testId === testId);
-    
+      .filter(q => q.testId === testId && q.organizationId === organizationId);
     if (testQuestions.length !== questionIds.length) return false;
-    
     questionIds.forEach((qid, index) => {
       const question = this.questions.get(qid);
-      if (question) {
+      if (question && question.organizationId === organizationId) {
         question.order = index + 1;
         this.questions.set(qid, question);
       }
     });
-    
     return true;
   }
 
   // Candidate operations
-  async getAllCandidates(): Promise<Candidate[]> {
-    return Array.from(this.candidates.values());
+  async getAllCandidates(organizationId: number): Promise<Candidate[]> {
+    return Array.from(this.candidates.values()).filter(candidate => candidate.organizationId === organizationId);
   }
 
-  async getCandidate(id: number): Promise<Candidate | undefined> {
-    return this.candidates.get(id);
+  async getCandidate(organizationId: number, id: number): Promise<Candidate | undefined> {
+    const candidate = this.candidates.get(id);
+    return candidate && candidate.organizationId === organizationId ? candidate : undefined;
   }
 
-  async getCandidateByEmail(email: string): Promise<Candidate | undefined> {
+  async getCandidateByEmail(organizationId: number, email: string): Promise<Candidate | undefined> {
     return Array.from(this.candidates.values()).find(
-      (candidate) => candidate.email === email,
+      (candidate) => candidate.organizationId === organizationId && candidate.email === email,
     );
   }
 
-  async createCandidate(insertCandidate: InsertCandidate): Promise<Candidate> {
+  async createCandidate(organizationId: number, insertCandidate: InsertCandidate): Promise<Candidate> {
     const id = this.candidateId++;
     const now = new Date();
     const candidate: Candidate = { 
       ...insertCandidate, 
       id, 
+      organizationId,
       createdAt: now,
       position: insertCandidate.position || null
     };
@@ -430,31 +322,42 @@ export class MemStorage implements IStorage {
   }
 
   // Test session operations
-  async getTestSessionsByTestId(testId: number): Promise<TestSession[]> {
-    return Array.from(this.testSessions.values())
-      .filter(session => session.testId === testId);
+  async getTestSessionsByTestId(organizationId: number, testId: number): Promise<TestSession[]> {
+    return Array.from(this.testSessions.values()).filter(session => {
+      const test = this.tests.get(session.testId);
+      return session.testId === testId && test && test.organizationId === organizationId;
+    });
   }
 
-  async getTestSessionsByCandidateId(candidateId: number): Promise<TestSession[]> {
-    return Array.from(this.testSessions.values())
-      .filter(session => session.candidateId === candidateId);
+  async getTestSessionsByCandidateId(organizationId: number, candidateId: number): Promise<TestSession[]> {
+    return Array.from(this.testSessions.values()).filter(session => {
+      const candidate = this.candidates.get(session.candidateId);
+      return session.candidateId === candidateId && candidate && candidate.organizationId === organizationId;
+    });
   }
 
-  async getTestSession(id: number): Promise<TestSession | undefined> {
-    return this.testSessions.get(id);
+  async getTestSession(organizationId: number, id: number): Promise<TestSession | undefined> {
+    const session = this.testSessions.get(id);
+    if (!session) return undefined;
+    const test = this.tests.get(session.testId);
+    return test && test.organizationId === organizationId ? session : undefined;
   }
 
-  async getTestSessionByToken(token: string): Promise<TestSession | undefined> {
-    return Array.from(this.testSessions.values()).find(
+  async getTestSessionByToken(organizationId: number, token: string): Promise<TestSession | undefined> {
+    const session = Array.from(this.testSessions.values()).find(
       (session) => session.token === token,
     );
+    if (!session) return undefined;
+    const test = this.tests.get(session.testId);
+    return test && test.organizationId === organizationId ? session : undefined;
   }
 
-  async createTestSession(insertSession: InsertTestSession): Promise<TestSession> {
+  async createTestSession(organizationId: number, insertSession: InsertTestSession): Promise<TestSession> {
     const id = this.sessionId++;
     const session: TestSession = { 
       ...insertSession, 
       id, 
+      organizationId,
       status: "pending",
       startedAt: null,
       completedAt: null,
@@ -467,48 +370,66 @@ export class MemStorage implements IStorage {
     return session;
   }
 
-  async updateTestSession(id: number, sessionUpdate: Partial<TestSession>): Promise<TestSession | undefined> {
+  async updateTestSession(organizationId: number, id: number, sessionUpdate: Partial<TestSession>): Promise<TestSession | undefined> {
     const session = this.testSessions.get(id);
-    if (!session) return undefined;
-    
+    if (!session || session.organizationId !== organizationId) return undefined;
     const updatedSession = { ...session, ...sessionUpdate };
     this.testSessions.set(id, updatedSession);
     return updatedSession;
   }
 
   // Candidate answer operations
-  async getCandidateAnswersBySessionId(sessionId: number): Promise<CandidateAnswer[]> {
+  async getCandidateAnswersBySessionId(organizationId: number, sessionId: number): Promise<CandidateAnswer[]> {
     return Array.from(this.candidateAnswers.values())
-      .filter(answer => answer.sessionId === sessionId);
+      .filter(answer => {
+        const session = this.testSessions.get(answer.sessionId);
+        return answer.sessionId === sessionId && session && session.organizationId === organizationId;
+      });
   }
 
-  async createCandidateAnswer(answer: InsertCandidateAnswer): Promise<CandidateAnswer> {
+  async createCandidateAnswer(organizationId: number, answer: InsertCandidateAnswer): Promise<CandidateAnswer> {
     const key = `${answer.sessionId}-${answer.questionId}`;
+    const session = this.testSessions.get(answer.sessionId);
+    if (!session || session.organizationId !== organizationId) {
+      throw new Error('Session not found or organization mismatch');
+    }
     this.candidateAnswers.set(key, answer as CandidateAnswer);
     return answer as CandidateAnswer;
   }
 
+  // Organization operations
+  async getOrganization(id: number): Promise<Organization | undefined> {
+    return this.organizations.get(id);
+  }
+
+  async createOrganization(data: { name: string }): Promise<Organization> {
+    const id = this.orgIdCounter++;
+    const org: Organization = { id, name: data.name, createdAt: new Date() };
+    this.organizations.set(id, org);
+    return org;
+  }
+
   // Dashboard stats
-  async getTestStats(): Promise<{
+  async getTestStats(organizationId: number): Promise<{
     totalTests: number;
     activeTests: number;
     totalCandidates: number;
     pendingSessions: number;
     completedSessions: number;
   }> {
-    const tests = Array.from(this.tests.values());
-    const sessions = Array.from(this.testSessions.values());
-    
+    const tests = Array.from(this.tests.values()).filter(t => t.organizationId === organizationId);
+    const sessions = Array.from(this.testSessions.values()).filter(s => s.organizationId === organizationId);
+    const candidates = Array.from(this.candidates.values()).filter(c => c.organizationId === organizationId);
     return {
       totalTests: tests.length,
       activeTests: tests.filter(t => t.isActive).length,
-      totalCandidates: this.candidates.size,
+      totalCandidates: candidates.length,
       pendingSessions: sessions.filter(s => s.status === "pending").length,
       completedSessions: sessions.filter(s => s.status === "completed").length,
     };
   }
   
-  async getRecentActivity(): Promise<{
+  async getRecentActivity(organizationId: number): Promise<{
     sessionId: number;
     candidateId: number;
     candidateName: string;
@@ -523,7 +444,7 @@ export class MemStorage implements IStorage {
       const candidate = this.candidates.get(session.candidateId);
       const test = this.tests.get(session.testId);
       
-      if (candidate && test) {
+      if (candidate && test && test.organizationId === organizationId) {
         result.push({
           sessionId: session.id,
           candidateId: candidate.id,

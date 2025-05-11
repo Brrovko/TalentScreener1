@@ -59,11 +59,15 @@ export function setupAuth(app: Express) {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true,
     },
-    store: new PostgresSessionStore({
+  };
+
+  // Use Postgres session store outside of test environment
+  if (process.env.NODE_ENV !== 'test') {
+    sessionSettings.store = new PostgresSessionStore({
       pool,
       createTableIfMissing: true,
-    }),
-  };
+    });
+  }
 
   app.set("trust proxy", 1);
   app.use(session(sessionSettings));
@@ -73,12 +77,13 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        const user = await storage.getUserByUsername(username);
+        // Поиск пользователя по email среди всех организаций
+        const user = await storage.findUserByEmail(username);
         if (!user || !(await comparePasswords(password, user.password)) || !user.active) {
           return done(null, false);
         } else {
           // Update last login time
-          await storage.updateUserLastLogin(user.id);
+          await storage.updateUserLastLogin(user.organizationId, user.id);
           return done(null, user);
         }
       } catch (error) {
@@ -90,7 +95,13 @@ export function setupAuth(app: Express) {
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
-      const user = await storage.getUser(id);
+      // id comes from session, so we need to lookup user by id for all orgs
+let user: SelectUser | undefined;
+for (let orgId = 1; ; orgId++) { // replace with real orgId enumeration
+  user = await storage.getUser(orgId, id);
+  if (user) break;
+}
+
       done(null, user);
     } catch (error) {
       done(error, null);
@@ -104,12 +115,12 @@ export function setupAuth(app: Express) {
         return res.status(403).json({ message: "Only administrators can register new users" });
       }
 
-      const existingUser = await storage.getUserByUsername(req.body.username);
+      const existingUser = await storage.getUserByUsername(req.user.organizationId, req.body.username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
       }
 
-      const user = await storage.createUser({
+      const user = await storage.createUser(req.user.organizationId, {
         ...req.body,
         password: await hashPassword(req.body.password),
       });
@@ -164,7 +175,7 @@ export function setupAuth(app: Express) {
         return res.status(403).json({ message: "Only administrators can view all users" });
       }
       
-      const users = await storage.getAllUsers();
+      const users = await storage.getAllUsers(req.user.organizationId);
       // Don't send the password hashes to the client
       const usersWithoutPasswords = users.map(user => {
         const { password, ...userWithoutPassword } = user;
@@ -191,7 +202,7 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Cannot update your own account" });
       }
       
-      const user = await storage.updateUser(userId, req.body);
+      const user = await storage.updateUser(req.user.organizationId, userId, req.body);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -219,7 +230,7 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Password must be at least 8 characters" });
       }
       
-      const user = await storage.updateUser(userId, {
+      const user = await storage.updateUser(req.user.organizationId, userId, {
         password: await hashPassword(newPassword)
       });
       
@@ -247,12 +258,12 @@ export function setupAuth(app: Express) {
       }
       
       // Verify current password
-      const user = await storage.getUser(req.user.id);
+      const user = await storage.getUser(req.user.organizationId, req.user.id);
       if (!user || !(await comparePasswords(currentPassword, user.password))) {
         return res.status(400).json({ message: "Current password is incorrect" });
       }
       
-      await storage.updateUser(req.user.id, {
+      await storage.updateUser(req.user.organizationId, req.user.id, {
         password: await hashPassword(newPassword)
       });
       

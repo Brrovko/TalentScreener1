@@ -11,9 +11,23 @@ export const USER_ROLES = [
 
 export type UserRole = typeof USER_ROLES[number];
 
+// Organization schema
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertOrganizationSchema = createInsertSchema(organizations).pick({
+  name: true,
+});
+
+export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+
 // User schema
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
@@ -24,6 +38,7 @@ export const users = pgTable("users", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  organizationId: true,
   username: true,
   password: true,
   fullName: true,
@@ -35,9 +50,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
 // Test schema
 export const tests = pgTable("tests", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
   name: text("name").notNull(),
   description: text("description"),
-
   createdBy: integer("created_by").notNull(),
   timeLimit: integer("time_limit"),
   isActive: boolean("is_active").notNull().default(true),
@@ -45,9 +60,9 @@ export const tests = pgTable("tests", {
 });
 
 export const insertTestSchema = createInsertSchema(tests).pick({
+  organizationId: true,
   name: true,
   description: true,
-
   createdBy: true,
   timeLimit: true,
   isActive: true,
@@ -57,6 +72,7 @@ export const insertTestSchema = createInsertSchema(tests).pick({
 // Question schema
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
   testId: integer("test_id").notNull(),
   content: text("content").notNull(),
   type: text("type").notNull().default("multiple_choice"),
@@ -67,6 +83,7 @@ export const questions = pgTable("questions", {
 });
 
 export const insertQuestionSchema = createInsertSchema(questions).pick({
+  organizationId: true,
   testId: true,
   content: true,
   type: true,
@@ -79,6 +96,7 @@ export const insertQuestionSchema = createInsertSchema(questions).pick({
 // Candidate schema
 export const candidates = pgTable("candidates", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   position: text("position"),
@@ -86,6 +104,7 @@ export const candidates = pgTable("candidates", {
 });
 
 export const insertCandidateSchema = createInsertSchema(candidates).pick({
+  organizationId: true,
   email: true,
   name: true,
   position: true,
@@ -94,6 +113,7 @@ export const insertCandidateSchema = createInsertSchema(candidates).pick({
 // Test session schema
 export const testSessions = pgTable("test_sessions", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
   testId: integer("test_id").notNull(),
   candidateId: integer("candidate_id").notNull(),
   token: text("token").notNull().unique(),
@@ -107,6 +127,7 @@ export const testSessions = pgTable("test_sessions", {
 });
 
 export const insertTestSessionSchema = createInsertSchema(testSessions).pick({
+  organizationId: true,
   testId: true,
   candidateId: true,
   token: true,
@@ -132,6 +153,8 @@ export const insertCandidateAnswerSchema = createInsertSchema(candidateAnswers);
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Organization = typeof organizations.$inferSelect;
 
 export type Test = typeof tests.$inferSelect;
 export type InsertTest = z.infer<typeof insertTestSchema>; // category removed

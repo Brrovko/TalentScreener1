@@ -8,6 +8,20 @@ describe('Управление вопросами теста', () => {
   beforeAll(async () => {
     app = express();
     app.use(express.json());
+    app.use((req, res, next) => {
+      req.user = {
+        id: 1,
+        organizationId: 1,
+        role: 'admin',
+        username: 'test',
+        email: 'test@skillchecker.tech',
+        active: true,
+        password: 'password',
+        fullName: 'Test User',
+        lastLogin: null
+      };
+      next();
+    });
     await registerRoutes(app);
   });
 
@@ -15,7 +29,7 @@ describe('Управление вопросами теста', () => {
     const testRes = await loggedRequest(app, 'POST', '/api/tests', {
       name: 'Questions Test',
       description: 'Test for adding questions',
-      
+      organizationId: 1,
       createdBy: 5,
       passingScore: 75,
       timeLimit: 45
@@ -25,6 +39,7 @@ describe('Управление вопросами теста', () => {
 
     const questionRes = await loggedRequest(app, 'POST', '/api/questions', {
       testId,
+      organizationId: 1,
       content: 'What is the capital of France?',
       type: 'multiple_choice',
       options: ['Berlin', 'Paris', 'Rome'],

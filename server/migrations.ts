@@ -1,7 +1,7 @@
 import { db } from './db';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { hashPassword } from './auth';
-import { users } from '@shared/schema';
+import { users, organizations } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
@@ -57,13 +57,17 @@ export async function seedDatabase() {
       return;
     }
     
+    // Создаем дефолтную организацию
+    const [defaultOrg] = await db.insert(organizations).values({ name: 'Default Organization' }).returning();
+    
     // Создаем пользователя admin
     const adminUser = await db.insert(users).values({
+      organizationId: defaultOrg.id,
       username: 'admin',
       password: await hashPassword('admin123'),
       fullName: 'System Administrator',
       role: 'admin',
-      email: 'admin@example.com',
+      email: 'admin@skillchecker.tech',
       active: true
     }).returning();
     

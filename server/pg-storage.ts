@@ -8,66 +8,72 @@ import {
   questions, Question, InsertQuestion,
   candidates, Candidate, InsertCandidate,
   testSessions, TestSession, InsertTestSession,
-  candidateAnswers, CandidateAnswer, InsertCandidateAnswer
+  candidateAnswers, CandidateAnswer, InsertCandidateAnswer,
+  organizations, Organization
 } from "@shared/schema";
 
 /**
  * Реализация хранилища данных с использованием PostgreSQL
  */
 export class PgStorage implements IStorage {
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id));
-    return result[0];
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username));
-    return result[0];
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
+  async findUserByEmail(email: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.email, email));
     return result[0];
   }
-
-  async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users);
-  }
-
-  async createUser(user: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(user).returning();
+  // User operations
+  async getUser(organizationId: number, id: number): Promise<User | undefined> {
+    const result = await db.select().from(users).where(and(eq(users.id, id), eq(users.organizationId, organizationId)));
     return result[0];
   }
 
-  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+  async getUserByUsername(organizationId: number, username: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(and(eq(users.username, username), eq(users.organizationId, organizationId)));
+    return result[0];
+  }
+
+  async getUserByEmail(organizationId: number, email: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(and(eq(users.email, email), eq(users.organizationId, organizationId)));
+    return result[0];
+  }
+
+  async getAllUsers(organizationId: number): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.organizationId, organizationId));
+  }
+
+  async createUser(organizationId: number, user: InsertUser): Promise<User> {
+    const result = await db.insert(users).values({ ...user, organizationId }).returning();
+    return result[0];
+  }
+
+  async updateUser(organizationId: number, id: number, userData: Partial<User>): Promise<User | undefined> {
     const result = await db.update(users)
       .set(userData)
-      .where(eq(users.id, id))
+      .where(and(eq(users.id, id), eq(users.organizationId, organizationId)))
       .returning();
     return result[0];
   }
 
-  async updateUserLastLogin(id: number): Promise<void> {
+  async updateUserLastLogin(organizationId: number, id: number): Promise<void> {
     await db.update(users)
       .set({ lastLogin: new Date() })
-      .where(eq(users.id, id));
+      .where(and(eq(users.id, id), eq(users.organizationId, organizationId)));
   }
 
   // Test operations
-  async getAllTests(): Promise<Test[]> {
-    return await db.select().from(tests);
+  async getAllTests(organizationId: number): Promise<Test[]> {
+    return await db.select().from(tests).where(eq(tests.organizationId, organizationId));
   }
 
-  async getTest(id: number): Promise<Test | undefined> {
-    const result = await db.select().from(tests).where(eq(tests.id, id));
+  async getTest(organizationId: number, id: number): Promise<Test | undefined> {
+    const result = await db.select().from(tests).where(and(eq(tests.id, id), eq(tests.organizationId, organizationId)));
     return result[0];
   }
 
-  async createTest(test: InsertTest): Promise<Test> {
+  async createTest(organizationId: number, test: InsertTest): Promise<Test> {
     // Убедимся, что все обязательные поля имеют значения
     const testToInsert = {
       ...test,
+      organizationId,
       description: test.description || null,
       timeLimit: test.timeLimit || null,
       isActive: test.isActive !== undefined ? test.isActive : true,
@@ -78,21 +84,21 @@ export class PgStorage implements IStorage {
     return result[0];
   }
 
-  async updateTest(id: number, testData: Partial<InsertTest>): Promise<Test | undefined> {
+  async updateTest(organizationId: number, id: number, testData: Partial<InsertTest>): Promise<Test | undefined> {
     // Do not run update if testData is empty (would generate invalid SQL)
     if (!testData || Object.keys(testData).length === 0) {
-      return await this.getTest(id);
+      return await this.getTest(organizationId, id);
     }
     const result = await db.update(tests)
       .set(testData)
-      .where(eq(tests.id, id))
+      .where(and(eq(tests.id, id), eq(tests.organizationId, organizationId)))
       .returning();
     return result[0];
   }
 
-  async deleteTest(id: number): Promise<boolean> {
+  async deleteTest(organizationId: number, id: number): Promise<boolean> {
     try {
-      await db.delete(tests).where(eq(tests.id, id));
+      await db.delete(tests).where(and(eq(tests.id, id), eq(tests.organizationId, organizationId)));
       return true;
     } catch (error) {
       console.error('Error deleting test:', error);
@@ -101,17 +107,18 @@ export class PgStorage implements IStorage {
   }
 
   // Question operations
-  async getQuestionsByTestId(testId: number): Promise<Question[]> {
+  async getQuestionsByTestId(organizationId: number, testId: number): Promise<Question[]> {
     return await db.select()
       .from(questions)
-      .where(eq(questions.testId, testId))
+      .where(and(eq(questions.testId, testId), eq(questions.organizationId, organizationId)))
       .orderBy(questions.order);
   }
 
-  async createQuestion(question: InsertQuestion): Promise<Question> {
+  async createQuestion(organizationId: number, question: InsertQuestion): Promise<Question> {
     // Убедимся, что все обязательные поля имеют значения
     const questionToInsert = {
       ...question,
+      organizationId,
       type: question.type || 'multiple_choice',
       points: question.points || 1
     };
@@ -120,10 +127,10 @@ export class PgStorage implements IStorage {
     return result[0];
   }
 
-  async updateQuestion(id: number, questionData: Partial<InsertQuestion>): Promise<Question | undefined> {
+  async updateQuestion(organizationId: number, id: number, questionData: Partial<InsertQuestion>): Promise<Question | undefined> {
     const result = await db.update(questions)
       .set(questionData)
-      .where(eq(questions.id, id))
+      .where(and(eq(questions.id, id), eq(questions.organizationId, organizationId)))
       .returning();
     return result[0];
   }
@@ -148,10 +155,10 @@ export class PgStorage implements IStorage {
     }
   }
 
-  async deleteQuestionsByTestId(testId: number): Promise<boolean> {
+  async deleteQuestionsByTestId(organizationId: number, testId: number): Promise<boolean> {
     try {
       // Удаляем вопросы
-      await db.delete(questions).where(eq(questions.testId, testId));
+      await db.delete(questions).where(and(eq(questions.testId, testId), eq(questions.organizationId, organizationId)));
       return true;
     } catch (error) {
       console.error('Error deleting questions by test ID:', error);
@@ -159,13 +166,13 @@ export class PgStorage implements IStorage {
     }
   }
 
-  async reorderQuestions(testId: number, questionIds: number[]): Promise<boolean> {
+  async reorderQuestions(organizationId: number, testId: number, questionIds: number[]): Promise<boolean> {
     try {
       // Обновляем порядок каждого вопроса
       for (let i = 0; i < questionIds.length; i++) {
         await db.update(questions)
           .set({ order: i + 1 })
-          .where(eq(questions.id, questionIds[i]));
+          .where(and(eq(questions.id, questionIds[i]), eq(questions.organizationId, organizationId), eq(questions.testId, testId)));
       }
       
       return true;
@@ -176,55 +183,51 @@ export class PgStorage implements IStorage {
   }
 
   // Candidate operations
-  async getAllCandidates(): Promise<Candidate[]> {
-    return await db.select().from(candidates);
+  async getAllCandidates(organizationId: number): Promise<Candidate[]> {
+    return await db.select().from(candidates).where(eq(candidates.organizationId, organizationId));
   }
 
-  async getCandidate(id: number): Promise<Candidate | undefined> {
-    const result = await db.select().from(candidates).where(eq(candidates.id, id));
+  async getCandidate(organizationId: number, id: number): Promise<Candidate | undefined> {
+    const result = await db.select().from(candidates).where(and(eq(candidates.id, id), eq(candidates.organizationId, organizationId)));
     return result[0];
   }
 
-  async getCandidateByEmail(email: string): Promise<Candidate | undefined> {
-    const result = await db.select().from(candidates).where(eq(candidates.email, email));
+  async getCandidateByEmail(organizationId: number, email: string): Promise<Candidate | undefined> {
+    const result = await db.select().from(candidates).where(and(eq(candidates.email, email), eq(candidates.organizationId, organizationId)));
     return result[0];
   }
 
-  async createCandidate(candidate: InsertCandidate): Promise<Candidate> {
+  async createCandidate(organizationId: number, candidate: InsertCandidate): Promise<Candidate> {
     // Убедимся, что все обязательные поля имеют значения
     const candidateToInsert = {
       ...candidate,
       position: candidate.position || null
     };
     
-    const result = await db.insert(candidates).values(candidateToInsert).returning();
+    const result = await db.insert(candidates).values({ ...candidateToInsert, organizationId }).returning();
     return result[0];
   }
 
   // Test session operations
-  async getTestSessionsByTestId(testId: number): Promise<TestSession[]> {
-    return await db.select()
-      .from(testSessions)
-      .where(eq(testSessions.testId, testId));
+  async getTestSessionsByTestId(organizationId: number, testId: number): Promise<TestSession[]> {
+    return await db.select().from(testSessions).where(and(eq(testSessions.testId, testId), eq(testSessions.organizationId, organizationId)));
   }
 
-  async getTestSessionsByCandidateId(candidateId: number): Promise<TestSession[]> {
-    return await db.select()
-      .from(testSessions)
-      .where(eq(testSessions.candidateId, candidateId));
+  async getTestSessionsByCandidateId(organizationId: number, candidateId: number): Promise<TestSession[]> {
+    return await db.select().from(testSessions).where(and(eq(testSessions.candidateId, candidateId), eq(testSessions.organizationId, organizationId)));
   }
 
-  async getTestSession(id: number): Promise<TestSession | undefined> {
-    const result = await db.select().from(testSessions).where(eq(testSessions.id, id));
+  async getTestSession(organizationId: number, id: number): Promise<TestSession | undefined> {
+    const result = await db.select().from(testSessions).where(and(eq(testSessions.id, id), eq(testSessions.organizationId, organizationId)));
     return result[0];
   }
 
-  async getTestSessionByToken(token: string): Promise<TestSession | undefined> {
-    const result = await db.select().from(testSessions).where(eq(testSessions.token, token));
+  async getTestSessionByToken(organizationId: number, token: string): Promise<TestSession | undefined> {
+    const result = await db.select().from(testSessions).where(and(eq(testSessions.token, token), eq(testSessions.organizationId, organizationId)));
     return result[0];
   }
 
-  async createTestSession(session: InsertTestSession): Promise<TestSession> {
+  async createTestSession(organizationId: number, session: InsertTestSession): Promise<TestSession> {
     // Если токен не предоставлен, генерируем его
     if (!session.token) {
       session.token = nanoid(10);
@@ -232,6 +235,7 @@ export class PgStorage implements IStorage {
     
     const result = await db.insert(testSessions).values({
       ...session,
+      organizationId,
       status: "pending",
       startedAt: null,
       completedAt: null,
@@ -243,28 +247,44 @@ export class PgStorage implements IStorage {
     return result[0];
   }
 
-  async updateTestSession(id: number, sessionData: Partial<TestSession>): Promise<TestSession | undefined> {
+  async updateTestSession(organizationId: number, id: number, sessionData: Partial<TestSession>): Promise<TestSession | undefined> {
     const result = await db.update(testSessions)
       .set(sessionData)
-      .where(eq(testSessions.id, id))
+      .where(and(eq(testSessions.id, id), eq(testSessions.organizationId, organizationId)))
       .returning();
     return result[0];
   }
 
   // Candidate answer operations
-  async getCandidateAnswersBySessionId(sessionId: number): Promise<CandidateAnswer[]> {
-    return await db.select()
-      .from(candidateAnswers)
-      .where(eq(candidateAnswers.sessionId, sessionId));
+  async getCandidateAnswersBySessionId(organizationId: number, sessionId: number): Promise<CandidateAnswer[]> {
+    // Получаем ответы только для сессий, принадлежащих нужной организации
+    const sessions = await db.select().from(testSessions).where(and(eq(testSessions.id, sessionId), eq(testSessions.organizationId, organizationId)));
+    if (!sessions.length) return [];
+    return await db.select().from(candidateAnswers).where(eq(candidateAnswers.sessionId, sessionId));
   }
 
-  async createCandidateAnswer(answer: InsertCandidateAnswer): Promise<CandidateAnswer> {
-    const result = await db.insert(candidateAnswers).values(answer).returning();
+  async createCandidateAnswer(organizationId: number, answer: InsertCandidateAnswer): Promise<CandidateAnswer> {
+    // Проверяем, что сессия принадлежит организации
+    const session = await db.select().from(testSessions).where(and(eq(testSessions.id, answer.sessionId), eq(testSessions.organizationId, organizationId)));
+    if (!session.length) throw new Error('Session does not belong to organization');
+    const result = await db.insert(candidateAnswers).values({ ...answer }).returning();
+    return result[0];
+  }
+
+  // Organization operations
+  async getOrganization(id: number): Promise<Organization | undefined> {
+    const result = await db.select().from(organizations).where(eq(organizations.id, id));
+    return result[0];
+  }
+
+  async createOrganization(data: { name: string }): Promise<Organization> {
+    const now = new Date();
+    const result = await db.insert(organizations).values({ name: data.name, createdAt: now }).returning();
     return result[0];
   }
 
   // Dashboard stats
-  async getTestStats(): Promise<{
+  async getTestStats(organizationId: number): Promise<{
     totalTests: number;
     activeTests: number;
     totalCandidates: number;
@@ -306,7 +326,7 @@ export class PgStorage implements IStorage {
     };
   }
   
-  async getRecentActivity(): Promise<{
+  async getRecentActivity(organizationId: number): Promise<{
     sessionId: number;
     candidateId: number;
     candidateName: string;
@@ -328,6 +348,7 @@ export class PgStorage implements IStorage {
     .from(testSessions)
     .innerJoin(candidates, eq(testSessions.candidateId, candidates.id))
     .innerJoin(tests, eq(testSessions.testId, tests.id))
+    .where(eq(tests.organizationId, organizationId))
     .orderBy(desc(sql`COALESCE(${testSessions.completedAt}, ${testSessions.startedAt}, ${testSessions.expiresAt}, CURRENT_TIMESTAMP)`))
     .limit(30);
     

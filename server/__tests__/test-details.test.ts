@@ -8,6 +8,20 @@ describe('Работа с тестами', () => {
   beforeAll(async () => {
     app = express();
     app.use(express.json());
+    app.use((req, res, next) => {
+      req.user = {
+        id: 1,
+        organizationId: 1,
+        role: 'admin',
+        username: 'test',
+        email: 'test@skillchecker.tech',
+        active: true,
+        password: 'password',
+        fullName: 'Test User',
+        lastLogin: null
+      };
+      next();
+    });
     await registerRoutes(app);
   });
 

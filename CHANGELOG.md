@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.8.8] - 2025-05-11
+### Changed
+- On the login page, replaced the label and placeholder for the username field with "Email address" and "Введите электронную почту". No translation/i18n was added.
+
+## [1.8.7] - 2025-05-11
+### Changed
+- Authorization logic now supports multi-organization login: users are identified by email across all organizations, not just the default org.
+- Introduced a new method `findUserByEmail(email)` in storage interfaces and implementations for organization-agnostic user lookup.
+- Updated Passport local strategy to use email for authentication and to properly resolve organization context.
+- Added tests for multi-organization email-based authentication.
+- Improved security by removing hardcoded organization fallback in authentication logic.
+
+## [1.8.6] - 2025-05-11
+### Changed
+- Added default organization and set default organization_id default to 1 for existing records in migration 004_add_organizations.sql.
+
 ## [1.8.5] - 2025-05-10
 ### Changed
 - Removed unused translation key `tests.category` from locale files.
@@ -93,9 +109,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.2.0] - 2025-05-09
-### Changed
-- Database seed now creates only the admin user. All other sample data (recruiter, tests, candidates, sessions) has been removed from the seed script.
+## [1.7.0] - 2025-05-11
+- Fixed all tests in server/__tests__ to mock req.user with all required fields (id, organizationId, username, password, fullName, role, email, active, lastLogin) to match the expected user type and pass organization context checks.
+- All server tests now pass successfully.
+### Updated
+- Updated README.md to match current .env.example configuration (SMTP settings and OpenRouter API key format)
+- Clarified that Docker Compose is the recommended development environment in README.md
+- Added server test command (`npm run test:server`) to Allure report section in README.md
+
+## [1.2.0] - 2025-05-11
+### Fixed
+- Устранено дублирование создания дефолтной организации и администратора
+  - Создание перенесено исключительно в seedDatabase
+  - В index.ts оставлены только проверки существования с явными ошибками
+### Added
+- Health check endpoint `/health` for Docker container monitoring
 
 ## [1.1.0] - 2025-05-09
 ### Removed

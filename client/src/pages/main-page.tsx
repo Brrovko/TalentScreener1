@@ -189,9 +189,9 @@ const AuthPage = () => {
                           name="username"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Имя пользователя</FormLabel>
+                              <FormLabel>Электронная почта</FormLabel>
                               <FormControl>
-                                <Input placeholder="admin" {...field} />
+                                <Input placeholder="Введите электронную почту" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -205,7 +205,7 @@ const AuthPage = () => {
                             <FormItem>
                               <FormLabel>Пароль</FormLabel>
                               <FormControl>
-                                <Input type="password" {...field} />
+                                <Input type="password" placeholder="Введите пароль" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

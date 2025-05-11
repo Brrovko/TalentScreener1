@@ -104,6 +104,10 @@ app.use((req, res, next) => {
 // Serve Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 (async () => {
   // Запускаем миграции базы данных
   await runMigrations();
@@ -119,20 +123,17 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   // Initialize admin user if not exists
   try {
     const { storage } = await import("./storage");
-    const { hashPassword } = await import("./auth");
     
-    const adminUser = await storage.getUserByUsername("admin");
+    // Получаем первую организацию (она уже должна существовать благодаря seedDatabase)
+    const organization = await storage.getOrganization(1);
+    if (!organization) {
+      throw new Error('Default organization not found - check seedDatabase function');
+    }
+    const organizationId = organization.id;
+
+    const adminUser = await storage.getUserByUsername(organizationId, "admin");
     if (!adminUser) {
-      console.log("Creating default admin user...");
-      await storage.createUser({
-        username: "admin",
-        password: await hashPassword("admin123"),
-        fullName: "System Administrator",
-        role: "admin",
-        email: "admin@example.com",
-        active: true
-      });
-      console.log("Default admin user created successfully");
+      throw new Error('Admin user not found - check seedDatabase function');
     }
   } catch (error) {
     console.error("Error creating admin user:", error);
