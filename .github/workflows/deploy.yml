@@ -175,6 +175,12 @@ jobs:
               -e DATABASE_URL=${{ env.DATABASE_URL }} \
               -e OPENROUTER_API_KEY=${{ env.OPENROUTER_API_KEY }} \
               -e LLM_MODEL=${{ env.LLM_MODEL }} \
+              -e SMTP_HOST=${{ env.SMTP_HOST }} \
+              -e SMTP_PORT=${{ env.SMTP_PORT }} \
+              -e SMTP_USER=${{ env.SMTP_USER }} \
+              -e SMTP_PASSWORD=${{ env.SMTP_PASSWORD }} \
+              -e SMTP_SECURE=${{ env.SMTP_SECURE }} \
+              -e SMTP_FROM=${{ env.SMTP_FROM }} \
               ${{ needs.build-and-push.outputs.image_tag }}
 
             # Проверить запуск
