@@ -36,8 +36,8 @@ COPY drizzle/ ./drizzle/
 # Environment variables
 ENV NODE_ENV=production
 
-# Install postgresql-client for health checks
-RUN apk add --no-cache postgresql-client
+# Install postgresql-client and curl for health checks
+RUN apk add --no-cache postgresql-client curl
 
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
   CMD curl -f http://localhost:5005/health || exit 1
