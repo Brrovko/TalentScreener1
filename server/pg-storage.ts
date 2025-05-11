@@ -222,8 +222,10 @@ export class PgStorage implements IStorage {
     return result[0];
   }
 
-  async getTestSessionByToken(organizationId: number, token: string): Promise<TestSession | undefined> {
-    const result = await db.select().from(testSessions).where(and(eq(testSessions.token, token), eq(testSessions.organizationId, organizationId)));
+
+  async getTestSessionByToken(token: string): Promise<TestSession | undefined> {
+    const result = await db.select().from(testSessions).where(eq(testSessions.token, token));
+    console.log('[DEBUG getTestSessionByToken]', { token, result });
     return result[0];
   }
 

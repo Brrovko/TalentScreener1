@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.8.9] - 2025-05-11
+### Fixed
+- Removed organizationId requirement for public endpoints /api/sessions/:token/start and /api/sessions/:token/submit. Candidates can now start and submit tests using only the token, without authentication or organization context. Added and improved tests for token-based session flow.
+
 ## [1.8.8] - 2025-05-11
 ### Changed
 - On the login page, replaced the label and placeholder for the username field with "Email address" and "Введите электронную почту". No translation/i18n was added.
@@ -106,6 +110,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.5] - 2025-05-09
 ### Changed
 - Increased the max width of the Create Test modal window (`CreateTestModal`) to `max-w-2xl` for correct horizontal alignment of 'Category' and 'Time Limit' fields. Now both fields are always on the same row.
+
+## [1.9.0] - 2025-05-11
+### Changed
+- Removed the overloaded `getTestSessionByToken(organizationId, token)` method from storage. Now only `getTestSessionByToken(token: string)` is supported for session lookup by token.
+- Refactored all usages and removed duplicate implementations to resolve TypeScript and lint errors.
+- All server tests pass successfully.
 
 ## [Unreleased]
 

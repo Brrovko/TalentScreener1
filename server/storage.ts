@@ -45,7 +45,7 @@ export interface IStorage {
   getTestSessionsByTestId(organizationId: number, testId: number): Promise<TestSession[]>;
   getTestSessionsByCandidateId(organizationId: number, candidateId: number): Promise<TestSession[]>;
   getTestSession(organizationId: number, id: number): Promise<TestSession | undefined>;
-  getTestSessionByToken(organizationId: number, token: string): Promise<TestSession | undefined>;
+  getTestSessionByToken(token: string): Promise<TestSession | undefined>;
   createTestSession(organizationId: number, session: InsertTestSession): Promise<TestSession>;
   updateTestSession(organizationId: number, id: number, session: Partial<TestSession>): Promise<TestSession | undefined>;
 
@@ -77,6 +77,9 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  async getTestSessionByToken(token: string): Promise<TestSession | undefined> {
+    return Array.from(this.testSessions.values()).find(session => session.token === token);
+  }
   async findUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(user => user.email === email);
   }
@@ -343,14 +346,7 @@ export class MemStorage implements IStorage {
     return test && test.organizationId === organizationId ? session : undefined;
   }
 
-  async getTestSessionByToken(organizationId: number, token: string): Promise<TestSession | undefined> {
-    const session = Array.from(this.testSessions.values()).find(
-      (session) => session.token === token,
-    );
-    if (!session) return undefined;
-    const test = this.tests.get(session.testId);
-    return test && test.organizationId === organizationId ? session : undefined;
-  }
+
 
   async createTestSession(organizationId: number, insertSession: InsertTestSession): Promise<TestSession> {
     const id = this.sessionId++;

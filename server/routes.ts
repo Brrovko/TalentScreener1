@@ -1114,7 +1114,7 @@ app.get("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
         return res.status(404).json({ message: "Session not found" });
       }
       // enrich with test name
-      const test = await storage.getTest(req.user.organizationId, session.testId);
+      const test = await storage.getTest(session.organizationId, session.testId);
       res.json({ ...session, test });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch session" });
@@ -1209,10 +1209,11 @@ app.get("/api/sessions/:id", async (req: ExpressRequest, res: Response) => {
  *         description: Server error
  */
 app.get("/api/sessions/token/:token", async (req: ExpressRequest, res: Response) => {
-    if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
+  console.log('[DEBUG /api/sessions/token/:token] req.params:', req.params);
     try {
       const token = req.params.token;
-      const session = await storage.getTestSessionByToken(req.user.organizationId, token);
+      // Найти сессию только по токену (без организации)
+      const session = await storage.getTestSessionByToken(token);
       if (!session) {
         return res.status(404).json({ message: "Session not found or expired" });
       }
@@ -1220,18 +1221,20 @@ app.get("/api/sessions/token/:token", async (req: ExpressRequest, res: Response)
       if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
         return res.status(403).json({ message: "Test session has expired" });
       }
+      // Использовать organizationId из сессии для дальнейших запросов
+      const orgId = session.organizationId;
       // Get the test details
-      const test = await storage.getTest(req.user.organizationId, session.testId);
+      const test = await storage.getTest(orgId, session.testId);
       if (!test) {
         return res.status(404).json({ message: "Test not found" });
       }
       // Get the candidate details
-      const candidate = await storage.getCandidate(req.user.organizationId, session.candidateId);
+      const candidate = await storage.getCandidate(orgId, session.candidateId);
       if (!candidate) {
         return res.status(404).json({ message: "Candidate not found" });
       }
       // Get the questions - don't include correct answers
-      const questionsWithAnswers = await storage.getQuestionsByTestId(req.user.organizationId, test.id);
+      const questionsWithAnswers = await storage.getQuestionsByTestId(orgId, test.id);
       const questions = questionsWithAnswers.map(q => ({
         id: q.id,
         content: q.content,
@@ -1327,7 +1330,6 @@ app.get("/api/sessions/token/:token", async (req: ExpressRequest, res: Response)
  *         description: Server error
  */
 app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Response) => {
-    if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
     try {
       const token = req.params.token;
       const { answers } = req.body;
@@ -1337,7 +1339,7 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
         return res.status(400).json({ message: "Answers must be an array" });
       }
       
-      const session = await storage.getTestSessionByToken(req.user.organizationId, token);
+      const session = await storage.getTestSessionByToken(token);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
@@ -1353,7 +1355,7 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
       }
       
       // Get questions to validate answers and calculate score
-      const questions = await storage.getQuestionsByTestId(req.user.organizationId, session.testId);
+      const questions = await storage.getQuestionsByTestId(session.organizationId, session.testId);
       
       let totalScore = 0;
       const processedAnswers = [];
@@ -1413,13 +1415,12 @@ app.post("/api/sessions/:token/submit", async (req: ExpressRequest, res: Respons
           points
         };
         
-        if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
-await storage.createCandidateAnswer(req.user.organizationId, candidateAnswer);
+        await storage.createCandidateAnswer(session.organizationId, candidateAnswer);
         processedAnswers.push(candidateAnswer);
       }
       
       // Get test for passing score threshold
-      const test = await storage.getTest(req.user.organizationId, session.testId);
+      const test = await storage.getTest(session.organizationId, session.testId);
       if (!test) {
         return res.status(404).json({ message: "Test not found" });
       }
@@ -1434,7 +1435,7 @@ await storage.createCandidateAnswer(req.user.organizationId, candidateAnswer);
       const passed = percentScore >= (test.passingScore || 70);
       
       // Update the session with the score, percentage, pass status and mark as completed
-      const updatedSession = await storage.updateTestSession(req.user.organizationId, session.id, {
+      const updatedSession = await storage.updateTestSession(session.organizationId, session.id, {
         status: "completed",
         completedAt: new Date(),
         score: totalScore,
@@ -1502,10 +1503,9 @@ await storage.createCandidateAnswer(req.user.organizationId, candidateAnswer);
  *         description: Server error
  */
 app.post("/api/sessions/:token/start", async (req: ExpressRequest, res: Response) => {
-    if (!req.user || !req.user.organizationId) return res.status(403).json({ message: "No organization context" });
     try {
       const token = req.params.token;
-      const session = await storage.getTestSessionByToken(req.user.organizationId, token);
+      const session = await storage.getTestSessionByToken(token);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }
@@ -1518,7 +1518,7 @@ app.post("/api/sessions/:token/start", async (req: ExpressRequest, res: Response
         return res.status(400).json({ message: "Test has already been completed" });
       }
       // Update the session status to in_progress and set the start time
-      const updatedSession = await storage.updateTestSession(req.user.organizationId, session.id, {
+      const updatedSession = await storage.updateTestSession(session.organizationId, session.id, {
         status: "in_progress",
         startedAt: new Date()
       });
