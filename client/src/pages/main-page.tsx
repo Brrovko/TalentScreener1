@@ -28,7 +28,7 @@ import {
 import useCursorDispersion from "@/hooks/useCursorDispersion";
 
 const loginSchema = z.object({
-  username: z.string().min(1, { message: "Имя пользователя обязательно" }),
+  username: z.string().email({ message: "Некорректная электронная почта" }),
   password: z.string().min(1, { message: "Пароль обязателен" }),
 });
 

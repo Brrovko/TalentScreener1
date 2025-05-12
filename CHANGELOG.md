@@ -111,6 +111,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Increased the max width of the Create Test modal window (`CreateTestModal`) to `max-w-2xl` for correct horizontal alignment of 'Category' and 'Time Limit' fields. Now both fields are always on the same row.
 
+## [1.9.1] - 2025-05-12
+### Changed
+- Updated login form validation to check for a valid email address format for the username field.
+
 ## [1.9.0] - 2025-05-11
 ### Changed
 - Removed the overloaded `getTestSessionByToken(organizationId, token)` method from storage. Now only `getTestSessionByToken(token: string)` is supported for session lookup by token.
