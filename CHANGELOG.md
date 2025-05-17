@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.0] - 2025-05-17
+### Added
+- Assign Test to Candidate feature on the tests page: now you can assign any test directly from the tests table using the new "Assign Test" button in the Actions column.
+- Modal for assigning a test to a candidate, with expiration period and instant test link generation.
+- UX fully matches the candidate page logic for consistency.
+- TypeScript and linter errors fixed for new and changed components.
+
+### Changed
+- Removed all usage of the `category` field from the tests table and related UI, as it no longer exists in the schema.
+
 ## [1.8.9] - 2025-05-11
 ### Fixed
 - Removed organizationId requirement for public endpoints /api/sessions/:token/start and /api/sessions/:token/submit. Candidates can now start and submit tests using only the token, without authentication or organization context. Added and improved tests for token-based session flow.
