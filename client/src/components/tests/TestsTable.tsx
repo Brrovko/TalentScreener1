@@ -16,12 +16,13 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "react-i18next";
+import AssignTestToCandidateModal from "./AssignTestToCandidateModal";
+import { useLocation } from "wouter";
 
 interface TestsTableProps {
   // больше не требуется onEdit
 }
 
-import { useLocation } from "wouter";
 const TestsTable = () => {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -78,13 +79,15 @@ const TestsTable = () => {
     });
   };
 
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<Test | null>(null);
+
   const filteredTests = useMemo(() => {
     return tests
       .filter((test) => {
         if (!filter) return true;
         return (
-          test.name.toLowerCase().includes(filter.toLowerCase()) ||
-          test.category.toLowerCase().includes(filter.toLowerCase())
+          test.name.toLowerCase().includes(filter.toLowerCase())
         );
       })
       .sort((a, b) => {
@@ -111,10 +114,6 @@ const TestsTable = () => {
         </div>
         
         <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-          <div>
-            <span className="text-neutral-500">{t('tests.category')}:</span>{" "}
-            <span className="text-neutral-700">{test.category}</span>
-          </div>
           <div>
             <span className="text-neutral-500">{t('tests.questions')}:</span>{" "}
             <span className="text-neutral-700">{questionsCountMap[test.id] || 0}</span>
@@ -165,7 +164,6 @@ const TestsTable = () => {
           <TableHeader>
             <TableRow className="bg-neutral-50 hover:bg-neutral-50">
               <TableHead>{t('tests.test_name')}</TableHead>
-              <TableHead>{t('tests.category')}</TableHead>
               <TableHead>{t('tests.questions')}</TableHead>
               <TableHead>{t('tests.status')}</TableHead>
               <TableHead className="text-right">{t('common.actions')}</TableHead>
@@ -174,13 +172,13 @@ const TestsTable = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={4} className="text-center py-8">
                   {t('common.loading')}
                 </TableCell>
               </TableRow>
             ) : filteredTests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={4} className="text-center py-8">
                   {filter
                     ? t('common.no_filter_results')
                     : t('common.no_data')}
@@ -190,7 +188,6 @@ const TestsTable = () => {
               filteredTests.map((test) => (
                 <TableRow key={test.id} className="hover:bg-neutral-50">
                   <TableCell className="font-medium text-blue-700 hover:underline cursor-pointer" onClick={() => setLocation(`/dashboard/tests/${test.id}`)}>{test.name}</TableCell>
-                  <TableCell>{test.category}</TableCell>
                   <TableCell>{questionsCountMap[test.id] || 0}</TableCell>
                   <TableCell>
                     <Badge
@@ -199,8 +196,17 @@ const TestsTable = () => {
                       {test.isActive ? t('tests.active') : t('tests.archived')}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-
+                  <TableCell className="text-right flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedTest(test);
+                        setAssignModalOpen(true);
+                      }}
+                    >
+                      {t('tests.assign_test', 'Назначить тест')}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -208,6 +214,14 @@ const TestsTable = () => {
           </TableBody>
         </Table>
       )}
+      <AssignTestToCandidateModal
+        isOpen={assignModalOpen}
+        onClose={() => {
+          setAssignModalOpen(false);
+          setSelectedTest(null);
+        }}
+        test={selectedTest}
+      />
     </div>
   );
 };
