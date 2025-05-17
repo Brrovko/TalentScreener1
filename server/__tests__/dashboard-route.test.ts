@@ -1,3 +1,9 @@
+jest.mock('../services/emailService', () => ({
+  EmailService: jest.fn().mockImplementation(() => ({
+    sendMail: jest.fn().mockResolvedValue(undefined)
+  }))
+}));
+
 import express from 'express';
 import { registerRoutes } from '../routes';
 import { loggedRequest } from './test-helper';

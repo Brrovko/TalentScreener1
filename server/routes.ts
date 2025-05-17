@@ -32,6 +32,46 @@ import multer from 'multer';
 const upload = multer();
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // --- Email verification endpoints ---
+  const sendEmailCodeSchema = z.object({
+    email: z.string().email().transform(e => e.trim().toLowerCase())
+  });
+
+  // In-memory rate limit (for demo, in prod — Redis or similar)
+  const emailCodeRateLimit = new Map<string, number>();
+
+  app.post("/api/send-email-code", async (req, res) => {
+    try {
+      const { email } = sendEmailCodeSchema.parse(req.body);
+      const now = Date.now();
+      // Очистка устаревших записей (старше 1 часа)
+      emailCodeRateLimit.forEach((v, k) => {
+        if (now - v > 60 * 60 * 1000) emailCodeRateLimit.delete(k);
+      });
+      const lastSent = emailCodeRateLimit.get(email) || 0;
+      if (now - lastSent < 60_000) {
+        return res.status(429).json({ message: "Please wait before requesting another code" });
+      }
+      // Генерируем код (6 цифр)
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
+      await storage.createEmailVerificationCode(email, code, expiresAt);
+      const emailService = new EmailService();
+      await emailService.sendMail({
+        to: email,
+        subject: "Your SkillChecker verification code",
+        text: `Your verification code: ${code}`
+      });
+      emailCodeRateLimit.set(email, now);
+      return res.status(200).json({ message: "Verification code sent" });
+    } catch (e) {
+      if (e instanceof z.ZodError) return res.status(400).json({ message: "Invalid email" });
+      console.error("send-email-code error", e);
+      return res.status(500).json({ message: "Failed to send verification code" });
+    }
+  });
+
+
   // Setup authentication
   setupAuth(app);
   // Tests routes

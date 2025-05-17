@@ -121,7 +121,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored all usages and removed duplicate implementations to resolve TypeScript and lint errors.
 - All server tests pass successfully.
 
+## [1.4.1] - 2025-05-14
+### Changed
+- User is now automatically logged in (session started) after successful registration via /api/self-register.
+
+## [1.4.0] - 2025-05-14
+### Changed
+- Registration flow refactored: removed /api/verify-email-code endpoint, email verification and registration are now combined in /api/self-register.
+- User becomes active immediately after successful registration with a valid code.
+- Frontend updated: code is sent and verified only as part of registration, no separate email verification step.
+
 ## [Unreleased]
+
+## [1.4.0] - 2025-05-11
+### Added
+- Endpoint `/api/self-register` for user self-registration and organization creation.
+- Validation for required fields and password strength.
+- Global uniqueness check for email (409 if already in use).
+- Unit tests for registration scenarios (valid, duplicate email, validation errors, weak password).
 
 ## [1.7.0] - 2025-05-11
 - Fixed all tests in server/__tests__ to mock req.user with all required fields (id, organizationId, username, password, fullName, role, email, active, lastLogin) to match the expected user type and pass organization context checks.

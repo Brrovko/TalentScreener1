@@ -111,6 +111,10 @@ app.get('/health', (req, res) => {
 (async () => {
   // Запускаем миграции базы данных
   await runMigrations();
+
+  // Очищаем использованные и истёкшие email verification codes
+  const { cleanupEmailVerificationCodes } = await import('./migrations');
+  await cleanupEmailVerificationCodes();
   
   // Заполняем базу данных начальными данными
   await seedDatabase();
@@ -125,7 +129,10 @@ app.get('/health', (req, res) => {
     const { storage } = await import("./storage");
     
     // Получаем первую организацию (она уже должна существовать благодаря seedDatabase)
-    const organization = await storage.getOrganization(1);
+    // Получаем организацию по имени (устойчиво к любому id)
+    const allOrgs = await (storage as any).getAllOrganizations?.() || [];
+    console.log('[DEBUG organizations]', allOrgs);
+    const organization = allOrgs.find((org: any) => org.name === 'Default Organization');
     if (!organization) {
       throw new Error('Default organization not found - check seedDatabase function');
     }

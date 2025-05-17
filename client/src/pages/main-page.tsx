@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import RegisterForm from "@/components/RegisterForm";
+import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -56,7 +58,9 @@ const AuthPage = () => {
     loginMutation.mutate(data);
   };
 
-  useCursorDispersion();
+  const [isRegisterModalOpen, setRegisterModalOpen] = useState(false);
+  const [isRegisterFormDirty, setIsRegisterFormDirty] = useState(false);
+  useCursorDispersion(!isRegisterModalOpen);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
@@ -219,15 +223,32 @@ const AuthPage = () => {
                         >
                           {loginMutation.isPending ? "Вход..." : "Войти в систему"}
                         </Button>
+                        <div className="flex flex-col items-center">
+                          <span className="mb-1 text-xs text-slate-400">Нет аккаунта?</span>
+                          <Dialog open={isRegisterModalOpen} onOpenChange={setRegisterModalOpen}>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" className="max-w-xs w-full mx-auto rounded-lg shadow-sm hover:bg-slate-100 transition mt-2">
+                                Зарегистрироваться
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent
+                              onInteractOutside={e => { if (isRegisterFormDirty) e.preventDefault(); }}
+                              onEscapeKeyDown={e => { if (isRegisterFormDirty) e.preventDefault(); }}
+                            >
+                              <RegisterForm 
+                                onSuccess={() => setRegisterModalOpen(false)}
+                                onDirtyChange={setIsRegisterFormDirty}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                       </form>
                     </Form>
                   </CardContent>
                 </Card>
               )}
 
-              <div className="mt-6 text-sm text-slate-600">
-                <p>Для получения учетных данных обратитесь к администратору системы</p>
-              </div>
+
             </div>
           </div>
         </div>

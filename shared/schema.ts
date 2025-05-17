@@ -183,3 +183,16 @@ export const QUESTION_TYPES = [
 ] as const;
 
 export type QuestionType = typeof QUESTION_TYPES[number];
+
+// Email verification code schema
+export const emailVerificationCodes = pgTable("email_verification_codes", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  attempts: integer("attempts").notNull().default(0),
+  used: boolean("used").notNull().default(false),
+});
+
+export type EmailVerificationCode = typeof emailVerificationCodes.$inferSelect;

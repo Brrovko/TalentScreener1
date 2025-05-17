@@ -4,6 +4,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { IStorage } from './storage';
 import {
   users, User, InsertUser,
+  emailVerificationCodes, EmailVerificationCode,
   tests, Test, InsertTest,
   questions, Question, InsertQuestion,
   candidates, Candidate, InsertCandidate,
@@ -16,6 +17,53 @@ import {
  * Реализация хранилища данных с использованием PostgreSQL
  */
 export class PgStorage implements IStorage {
+  async getAllOrganizations(): Promise<Organization[]> {
+    return await db.select().from(organizations);
+  }
+  // Email verification code operations
+  async createEmailVerificationCode(email: string, code: string, expiresAt: Date): Promise<EmailVerificationCode> {
+    // Сначала удаляем старые коды для этого email
+    await db.update(emailVerificationCodes).set({ used: true }).where(eq(emailVerificationCodes.email, email));
+    const result = await db.insert(emailVerificationCodes).values({
+      email,
+      code,
+      expiresAt,
+      createdAt: new Date(),
+      attempts: 0,
+      used: false,
+    }).returning();
+    return result[0];
+  }
+
+  async findEmailVerificationCode(email: string): Promise<EmailVerificationCode | undefined> {
+    const now = new Date();
+    const result = await db.select().from(emailVerificationCodes)
+      .where(and(eq(emailVerificationCodes.email, email), eq(emailVerificationCodes.used, false), sql`${emailVerificationCodes.expiresAt} > ${now}`))
+      .orderBy(desc(emailVerificationCodes.createdAt));
+    return result[0];
+  }
+
+  async verifyAndConsumeEmailCode(email: string, code: string): Promise<boolean> {
+    const now = new Date();
+    const result = await db.select().from(emailVerificationCodes)
+      .where(and(eq(emailVerificationCodes.email, email), eq(emailVerificationCodes.used, false), sql`${emailVerificationCodes.expiresAt} > ${now}`))
+      .orderBy(desc(emailVerificationCodes.createdAt));
+    const rec = result[0];
+    if (!rec) return false;
+    if (rec.code !== code) {
+      await db.update(emailVerificationCodes)
+        .set({ attempts: rec.attempts + 1 })
+        .where(eq(emailVerificationCodes.id, rec.id));
+      return false;
+    }
+    await db.update(emailVerificationCodes)
+      .set({ used: true })
+      .where(eq(emailVerificationCodes.id, rec.id));
+    return true;
+  }
+
+
+
   async findUserByEmail(email: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.email, email));
     return result[0];

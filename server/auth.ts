@@ -138,6 +138,75 @@ for (let orgId = 1; ; orgId++) { // replace with real orgId enumeration
     }
   });
 
+  // Endpoint для самостоятельной регистрации пользователя и организации
+  app.post("/api/self-register", async (req, res, next) => {
+    try {
+      const { email, password, username, organizationName, fullName, code } = req.body;
+      // Валидация
+      if (!code || typeof code !== 'string' || code.trim().length < 4) {
+        return res.status(400).json({ message: "Verification code is required" });
+      }
+      if (!email || typeof email !== 'string' || !/^\S+@\S+\.\S+$/.test(email)) {
+        return res.status(400).json({ message: "Invalid email" });
+      }
+      if (!password || typeof password !== 'string' || password.length < 8 ||
+        !/[A-Za-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+        return res.status(400).json({ message: "Password must be at least 8 characters and include a letter, a number, and a special character" });
+      }
+      if (!username || typeof username !== 'string' || username.trim().length === 0) {
+        return res.status(400).json({ message: "Username is required" });
+      }
+      if (!organizationName || typeof organizationName !== 'string' || organizationName.trim().length === 0) {
+        return res.status(400).json({ message: "Organization name is required" });
+      }
+      // Проверка уникальности email
+      const existing = await storage.findUserByEmail(email);
+      if (existing) {
+        return res.status(409).json({ message: "Email already in use" });
+      }
+      // Проверка кода подтверждения email
+      const codeOk = await storage.verifyAndConsumeEmailCode(email, code);
+      if (!codeOk) {
+        return res.status(409).json({ message: "Invalid or expired verification code" });
+      }
+      // Создать организацию
+      const org = await storage.createOrganization({ name: organizationName });
+      // Создать пользователя-администратора
+      const user = await storage.createUser(org.id, {
+        organizationId: org.id,
+        email,
+        password: await hashPassword(password),
+        username,
+        fullName: fullName || username,
+        role: 'admin',
+        active: true
+      });
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Auto-login after registration failed:', err);
+          return res.status(201).json({
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            fullName: user.fullName,
+            role: user.role,
+            organizationId: org.id,
+            autoLogin: false
+          });
+        }
+        // Не возвращаем пароль
+        const { password, ...userWithoutPassword } = user;
+        res.status(201).json({
+          ...userWithoutPassword,
+          organizationId: org.id,
+          autoLogin: true
+        });
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: Error | null, user: SelectUser | false, info: { message: string }) => {
       if (err) return next(err);

@@ -1,5 +1,6 @@
 import {
   users, User, InsertUser,
+  emailVerificationCodes, EmailVerificationCode,
   tests, Test, InsertTest,
   questions, Question, InsertQuestion,
   candidates, Candidate, InsertCandidate,
@@ -10,6 +11,11 @@ import {
 import { nanoid } from "nanoid";
 
 export interface IStorage {
+  // Email verification code operations
+  createEmailVerificationCode(email: string, code: string, expiresAt: Date): Promise<EmailVerificationCode>;
+  findEmailVerificationCode(email: string): Promise<EmailVerificationCode | undefined>;
+  verifyAndConsumeEmailCode(email: string, code: string): Promise<boolean>;
+
   // User operations
   getUser(organizationId: number, id: number): Promise<User | undefined>;
   getUserByUsername(organizationId: number, username: string): Promise<User | undefined>;
@@ -56,6 +62,7 @@ export interface IStorage {
   // Organization operations
   getOrganization(id: number): Promise<Organization | undefined>;
   createOrganization(data: { name: string }): Promise<Organization>;
+  getAllOrganizations(): Promise<Organization[]>;
 
   // Dashboard stats
   getTestStats(organizationId: number): Promise<{
@@ -77,6 +84,49 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  async getAllOrganizations(): Promise<Organization[]> {
+    return Array.from(this.organizations.values());
+  }
+  private emailCodes: Map<string, EmailVerificationCode> = new Map();
+
+  async createEmailVerificationCode(email: string, code: string, expiresAt: Date): Promise<EmailVerificationCode> {
+    const rec: EmailVerificationCode = {
+      id: Math.floor(Math.random() * 1000000),
+      email,
+      code,
+      expiresAt,
+      createdAt: new Date(),
+      attempts: 0,
+      used: false,
+    };
+    this.emailCodes.set(email, rec);
+    return rec;
+  }
+  async findEmailVerificationCode(email: string): Promise<EmailVerificationCode | undefined> {
+    const rec = this.emailCodes.get(email);
+    if (!rec) return undefined;
+    if (rec.expiresAt < new Date() || rec.used) {
+      this.emailCodes.delete(email);
+      return undefined;
+    }
+    return rec;
+  }
+  async verifyAndConsumeEmailCode(email: string, code: string): Promise<boolean> {
+    const rec = await this.findEmailVerificationCode(email);
+    if (!rec) return false;
+    if (rec.code !== code) {
+      rec.attempts++;
+      this.emailCodes.set(email, rec);
+      return false;
+    }
+    rec.used = true;
+    this.emailCodes.set(email, rec);
+    return true;
+  }
+  async deleteEmailVerificationCode(email: string): Promise<void> {
+    this.emailCodes.delete(email);
+  }
+
   async getTestSessionByToken(token: string): Promise<TestSession | undefined> {
     return Array.from(this.testSessions.values()).find(session => session.token === token);
   }
