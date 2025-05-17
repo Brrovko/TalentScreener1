@@ -6,7 +6,6 @@ services:
       context: .
       dockerfile: Dockerfile
     image: skillchecker:latest
-    container_name: skillchecker
     restart: unless-stopped
     ports:
       - "5005:5005"
@@ -34,7 +33,6 @@ services:
 
   db:
     image: postgres:17.4
-    container_name: skillchecker-postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=postgres
@@ -59,7 +57,6 @@ services:
       dockerfile: Dockerfile
       target: builder
     image: skillchecker:latest
-    container_name: skillchecker-test
     environment:
       - NODE_ENV=test
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/skillchecker

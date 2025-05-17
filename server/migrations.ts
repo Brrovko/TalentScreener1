@@ -1,8 +1,7 @@
-import { db } from './db';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { hashPassword } from './auth';
-import { users, organizations } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import {db} from './db';
+import {hashPassword} from './auth';
+import {organizations, users} from '@shared/schema';
+import {eq} from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
@@ -56,9 +55,12 @@ export async function seedDatabase() {
       console.log('Database already seeded, skipping...');
       return;
     }
-    
-    // Создаем дефолтную организацию
-    const [defaultOrg] = await db.insert(organizations).values({ name: 'Default Organization' }).returning();
+
+    // Проверяем, есть ли уже организация с таким именем
+    let [defaultOrg] = await db.select().from(organizations).where(eq(organizations.name, 'Default Organization'));
+    if (!defaultOrg) {
+      [defaultOrg] = await db.insert(organizations).values({name: 'Default Organization'}).returning();
+    }
     
     // Создаем пользователя admin
     const adminUser = await db.insert(users).values({

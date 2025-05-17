@@ -71,7 +71,10 @@ const translation = {
     manage_questions: "Manage Questions",
     add_question: "Add Question",
     edit_question: "Edit Question",
-    no_questions: "No questions. Add questions for this test."
+    no_questions: "No questions. Add questions for this test.",
+    expiration_days: "Expiration (days)",
+    assign_test: "Assign Test",
+    name: "Name"
   },
   question_types: {
     single_choice: "Single Choice",
