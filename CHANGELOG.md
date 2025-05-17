@@ -34,6 +34,12 @@
 ### Changed
 - Removed unused translation key `tests.category` from locale files.
 
+## [1.8.4] - 2025-05-17
+### Removed
+- Removed unused UI components: calendar, carousel, chart, command, input-otp, resizable (and their dependencies).
+- Uninstalled related npm packages: react-day-picker, embla-carousel-react, recharts, cmdk, input-otp, react-resizable-panels.
+- Project now passes `npx tsc --noEmit` with no errors. All server tests pass. Temporary docker-compose file for testing created with new ports.
+
 ## [1.8.4] - 2025-05-10
 ### Changed
 - Removed the `Category` field from the test details page, since the category property has been deleted from the schema.
