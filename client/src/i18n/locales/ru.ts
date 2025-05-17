@@ -68,10 +68,13 @@ const translation = {
     assign_to_candidate: "Назначить кандидату",
     expires_at: "Истекает",
     question_count: "Количество вопросов",
-    manage_questions: "Управление вопросами",
+    manage_questions: "Управлять вопросами",
     add_question: "Добавить вопрос",
     edit_question: "Редактировать вопрос",
-    no_questions: "Нет вопросов. Добавьте вопросы для этого теста."
+    no_questions: "Нет вопросов. Добавьте вопросы для этого теста.",
+    expiration_days: "Срок действия (дней)",
+    assign_test: "Назначить тест",
+    name: "Имя"
   },
   question_types: {
     single_choice: "Один вариант",

@@ -1,27 +1,16 @@
-import { useMemo, useState } from "react";
-import { Edit, Pencil } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Test } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useTranslation } from "react-i18next";
+import {useMemo, useState} from "react";
+import {FileSpreadsheet, Pencil} from "lucide-react";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table";
+import {Test} from "@shared/schema";
+import {useToast} from "@/hooks/use-toast";
+import {apiRequest} from "@/lib/queryClient";
+import {useMutation, useQuery} from "@tanstack/react-query";
+import {useIsMobile} from "@/hooks/use-mobile";
+import {useTranslation} from "react-i18next";
 import AssignTestToCandidateModal from "./AssignTestToCandidateModal";
-import { useLocation } from "wouter";
-
-interface TestsTableProps {
-  // больше не требуется onEdit
-}
+import {useLocation} from "wouter";
 
 const TestsTable = () => {
   const [, setLocation] = useLocation();
@@ -34,7 +23,7 @@ const TestsTable = () => {
     queryKey: ["/api/tests"],
   });
 
-  const { data: questionsCountMap = {}, isLoading: isLoadingQuestions } = useQuery<Record<number, number>>({
+  const {data: questionsCountMap = {}} = useQuery<Record<number, number>>({
     queryKey: ["/api/tests/questions-count"],
     queryFn: async () => {
       const countMap: Record<number, number> = {};
@@ -49,8 +38,7 @@ const TestsTable = () => {
     },
     enabled: tests.length > 0,
   });
-
-  const updateTestMutation = useMutation({
+  useMutation({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
       const response = await apiRequest("PATCH", `/api/tests/${id}`, {
         isActive,
@@ -71,14 +59,6 @@ const TestsTable = () => {
       });
     },
   });
-
-  const toggleTestStatus = (test: Test) => {
-    updateTestMutation.mutate({
-      id: test.id,
-      isActive: !test.isActive,
-    });
-  };
-
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
 
@@ -198,14 +178,16 @@ const TestsTable = () => {
                   </TableCell>
                   <TableCell className="text-right flex gap-2 justify-end">
                     <Button
-                      variant="outline"
+                        variant="ghost"
                       size="sm"
+                        className="h-8"
                       onClick={() => {
                         setSelectedTest(test);
                         setAssignModalOpen(true);
                       }}
                     >
-                      {t('tests.assign_test', 'Назначить тест')}
+                      <FileSpreadsheet className="h-4 w-4 mr-1"/>
+                      {t('candidates.assign_test', 'Назначить тест')}
                     </Button>
                   </TableCell>
                 </TableRow>

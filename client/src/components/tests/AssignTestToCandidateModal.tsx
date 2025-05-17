@@ -1,28 +1,17 @@
 // For what: Assigns a selected test to a candidate, selects the expiration period, and generates a link for taking the test. Used in TestsTable.
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Copy } from "lucide-react";
-import { Test, Candidate } from "@shared/schema";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { useTranslation } from "react-i18next";
+import {useEffect, useState} from "react";
+import {useMutation, useQuery} from "@tanstack/react-query";
+import {useToast} from "@/hooks/use-toast";
+import {apiRequest, queryClient} from "@/lib/queryClient";
+import {Copy} from "lucide-react";
+import {Candidate, Test} from "@shared/schema";
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
+import {Button} from "@/components/ui/button";
+import {Label} from "@/components/ui/label";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
+import {Input} from "@/components/ui/input";
+import {useTranslation} from "react-i18next";
 
 interface AssignTestToCandidateModalProps {
   isOpen: boolean;
@@ -101,16 +90,13 @@ const AssignTestToCandidateModal = ({ isOpen, onClose, test }: AssignTestToCandi
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-w-md w-full">
         <DialogHeader>
-          <DialogTitle>{t("tests.assign_test", "Assign Test")}</DialogTitle>
+          <DialogTitle>{t("tests:assign_test", "Назначить тест")}</DialogTitle>
+          {test && (
+              <div className="text-base font-medium text-neutral-700 mt-1 mb-2 text-left">{test.name}</div>
+          )}
         </DialogHeader>
-        {test && (
-          <div className="mb-4">
-            <Label>{t("tests.test_name", "Test Name")}</Label>
-            <div className="font-medium">{test.name}</div>
-          </div>
-        )}
         <div className="mb-4">
-          <Label htmlFor="candidate-select">{t("candidates.name", "Candidate")}</Label>
+          <Label htmlFor="candidate-select">{t("candidates.name", "Name")}</Label>
           <Select value={candidateId} onValueChange={setCandidateId} disabled={isLoadingCandidates}>
             <SelectTrigger id="candidate-select">
               <SelectValue placeholder={t("candidates.select_candidate", "Select candidate")}/>
@@ -125,7 +111,7 @@ const AssignTestToCandidateModal = ({ isOpen, onClose, test }: AssignTestToCandi
           </Select>
         </div>
         <div className="mb-4">
-          <Label htmlFor="expires-in">{t("tests.expiration_days", "Expiration (days)")}</Label>
+          <Label htmlFor="expires-in">{t("tests:expiration_days", "Срок действия (дней)")}</Label>
           <Input
             id="expires-in"
             type="number"
@@ -140,7 +126,7 @@ const AssignTestToCandidateModal = ({ isOpen, onClose, test }: AssignTestToCandi
         </Button>
         {testLink && (
           <div className="mt-4 p-3 bg-neutral-100 rounded">
-            <Label>{t("tests.test_link", "Test Link")}</Label>
+            <Label>{t("tests.test_link")}</Label>
             <div className="flex items-center gap-2">
               <Input value={testLink} readOnly className="flex-1" />
               <Button
