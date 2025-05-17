@@ -34,6 +34,7 @@ SkillChecker is a complete skills assessment platform that supports the full ass
 - **Performance Analytics**: Visualize candidate performance and identify skill gaps
 - **AI-Powered Question Generation**: Automatically generate questions based on test topics
 - **CSV Import/Export**: Easily manage test questions through spreadsheet imports
+- **Test Assignment**: Assign any test to a candidate directly from the tests page using the "Assign Test" button in the Actions column. Instantly generate a unique test link with an expiration period.
 
 ### Primary Use Cases
 1. **Technical Hiring**: Assess programming skills, technical knowledge, and problem-solving abilities
