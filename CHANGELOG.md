@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.0] - 2025-05-17
+### Added
+- Assign Test to Candidate feature on the tests page: now you can assign any test directly from the tests table using the new "Assign Test" button in the Actions column.
+- Modal for assigning a test to a candidate, with expiration period and instant test link generation.
+- UX fully matches the candidate page logic for consistency.
+- TypeScript and linter errors fixed for new and changed components.
+
+### Changed
+- Removed all usage of the `category` field from the tests table and related UI, as it no longer exists in the schema.
+
 ## [1.8.9] - 2025-05-11
 ### Fixed
 - Removed organizationId requirement for public endpoints /api/sessions/:token/start and /api/sessions/:token/submit. Candidates can now start and submit tests using only the token, without authentication or organization context. Added and improved tests for token-based session flow.
@@ -23,6 +33,12 @@
 ## [1.8.5] - 2025-05-10
 ### Changed
 - Removed unused translation key `tests.category` from locale files.
+
+## [1.8.4] - 2025-05-17
+### Removed
+- Removed unused UI components: calendar, carousel, chart, command, input-otp, resizable (and their dependencies).
+- Uninstalled related npm packages: react-day-picker, embla-carousel-react, recharts, cmdk, input-otp, react-resizable-panels.
+- Project now passes `npx tsc --noEmit` with no errors. All server tests pass. Temporary docker-compose file for testing created with new ports.
 
 ## [1.8.4] - 2025-05-10
 ### Changed

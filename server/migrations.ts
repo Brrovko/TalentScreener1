@@ -1,8 +1,7 @@
-import { db } from './db';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { hashPassword } from './auth';
-import { users, organizations } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import {db} from './db';
+import {hashPassword} from './auth';
+import {organizations, users} from '@shared/schema';
+import {eq} from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
@@ -64,10 +63,8 @@ export async function seedDatabase() {
   try {
     console.log('Seeding database...');
 
-    // Найти или создать дефолтную организацию
-    let defaultOrg = await db.query.organizations.findFirst({
-      where: (org, { eq }) => eq(org.name, 'Default Organization'),
-    });
+    // Проверяем, есть ли уже организация с таким именем
+    let [defaultOrg] = await db.select().from(organizations).where(eq(organizations.name, 'Default Organization'));
     if (!defaultOrg) {
       [defaultOrg] = await db.insert(organizations).values({ name: 'Default Organization' }).returning();
       console.log('Created Default Organization:', defaultOrg.id);
@@ -103,4 +100,3 @@ export async function seedDatabase() {
     throw error;
   }
 }
-
